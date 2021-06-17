@@ -1,0 +1,53 @@
+{
+  "name": "rgbgaps",
+  "version": "1.0.0",
+  "description": "Online RGB distance meter",
+  "private": true,
+  "scripts": {
+    "start": "next start",
+    "dev": "next dev",
+    "build": "next build",
+    "export": "next export",
+    "telemetry": "next telemetry"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/erincones/rgbgaps.git"
+  },
+  "author": "Erick Rincones <erick.rincones@ciens.ucv.ve>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/erincones/rgbgaps/issues"
+  },
+  "homepage": "https://rgbgaps.vercel.app",
+  "dependencies": {
+    "@fortawesome/fontawesome-svg-core": "^1.2.35",
+    "@fortawesome/free-brands-svg-icons": "^5.15.3",
+    "@fortawesome/free-regular-svg-icons": "^5.15.3",
+    "@fortawesome/free-solid-svg-icons": "^5.15.3",
+    "@fortawesome/react-fontawesome": "^0.1.14",
+    "cowsayjs": "^1.0.3",
+    "next": "^10.2.0",
+    "postcss-flexbugs-fixes": "^5.0.2",
+    "postcss-import": "^14.0.0",
+    "postcss-preset-env": "^6.7.0",
+    "react": "^17.0.1",
+    "react-dom": "^17.0.1",
+    "sass": "^1.32.12",
+    "tailwindcss": "^2.1.2"
+  },
+  "devDependencies": {
+    "@types/node": "^15.0.2",
+    "@types/react": "^17.0.5",
+    "@types/tailwindcss": "^2.0.3",
+    "@typescript-eslint/eslint-plugin": "^4.22.1",
+    "@typescript-eslint/parser": "^4.22.1",
+    "eslint": "^7.26.0",
+    "eslint-plugin-react": "^7.23.2",
+    "eslint-plugin-react-hooks": "^4.2.0",
+    "stylelint": "^13.13.1",
+    "stylelint-config-recommended": "^4.0.0",
+    "stylelint-scss": "^3.19.0",
+    "typescript": "^4.2.4"
+  }
+}

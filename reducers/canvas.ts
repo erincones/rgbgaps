@@ -1,4 +1,4 @@
-import { GLSLShader, GLSLProgram, GLSLTexture2D, GLSLPlane } from "../lib/glsl";
+import { GLSLShader, GLSLProgram, GLSLTexture2D, GLSLCube } from "../lib/glsl";
 
 import { hexToRGBA, WHITE, RGBA } from "../helpers/color";
 
@@ -14,7 +14,7 @@ interface State {
 
   readonly program: GLSLProgram;
   readonly texture: GLSLTexture2D;
-  readonly plane: GLSLPlane;
+  readonly cube: GLSLCube;
 
   readonly background: RGBA;
 
@@ -76,7 +76,7 @@ export const SCALE_FACTOR = 1.25;
  * @returns Next state
  */
 const render = (state: State): State => {
-  const { gl, container, program, plane, scale } = state;
+  const { gl, container, program, cube, scale } = state;
 
   // Reset context
   gl.clear(gl.COLOR_BUFFER_BIT);
@@ -86,8 +86,8 @@ const render = (state: State): State => {
   gl.uniform2f(program.getLocation(`u_canvas`), container.offsetWidth, container.offsetHeight);
   gl.uniform1f(program.getLocation(`u_scale`), scale);
 
-  // Draw plane
-  plane.draw();
+  // Draw cube
+  cube.draw();
 
   // Return state
   return state;
@@ -109,8 +109,13 @@ const initialize = (container: HTMLDivElement, canvas: HTMLCanvasElement): State
   const errors: string[] = [];
   const onerror = (error: string) => { errors.push(error); };
 
-  // Initialize context
+  // Initialize and setup context
   const gl = canvas.getContext(`webgl2`, { alpha: false }) as WebGL2RenderingContext;
+
+  gl.enable(gl.CULL_FACE);
+  gl.cullFace(gl.FRONT);
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
   // Image program
   const vert = new GLSLShader(gl, gl.VERTEX_SHADER, CUBE_VERT, onerror);
@@ -118,9 +123,9 @@ const initialize = (container: HTMLDivElement, canvas: HTMLCanvasElement): State
   const program = new GLSLProgram(gl, vert, frag, onerror);
   program.deleteShaders();
 
-  // Create texture and plane
+  // Create texture and cube
   const texture = new GLSLTexture2D(gl, null, 0, onerror);
-  const plane = new GLSLPlane(gl, onerror);
+  const cube = new GLSLCube(gl, onerror);
 
   // Resize viewport
   gl.viewport(0, 0, container.offsetWidth, container.offsetHeight);
@@ -133,7 +138,7 @@ const initialize = (container: HTMLDivElement, canvas: HTMLCanvasElement): State
     gl,
     program,
     texture,
-    plane,
+    cube,
     background: WHITE,
     x: 0,
     y: 0,
@@ -176,7 +181,6 @@ const setBackground = (state: State, bg: string): State => {
 
   // Parse and update background color
   const background = hexToRGBA(bg) || WHITE;
-  console.log(background);
 
   gl.clearColor(background[0], background[1], background[2], background[3]);
 
@@ -233,11 +237,11 @@ const scale = (state: State, scale: number, x = NaN, y = NaN): State => {
  * @returns Next state
  */
 const cleanUp = (state: State): State => {
-  const { program, texture, plane } = state;
+  const { program, texture, cube } = state;
 
   program.delete();
   texture.delete();
-  plane.delete();
+  cube.delete();
 
   return render(state);
 };
@@ -250,7 +254,7 @@ export const initialCanvas: State = {
   gl: null as never,
   program: null as never,
   texture: null as never,
-  plane: null as never,
+  cube: null as never,
   background: WHITE,
   x: 0,
   y: 0,

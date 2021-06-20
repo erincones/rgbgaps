@@ -41,7 +41,7 @@ export const Canvas = ({ background = `#FFFFFF`, onZoomChange }: Props): JSX.Ele
     e.preventDefault();
 
     if (e.buttons === 1) {
-      css.current.textContent = `* { cursor: grabbing !important }`;
+      css.current.textContent = `* { cursor: move !important }`;
       setMouse({ x: e.clientX, y: e.clientY });
     }
   }, []);
@@ -88,7 +88,7 @@ export const Canvas = ({ background = `#FFFFFF`, onZoomChange }: Props): JSX.Ele
 
           const mouse = { x: e.clientX, y: e.clientY };
           const dx = mouse.x - point.x;
-          const dy = mouse.y - point.y;
+          const dy = point.y - mouse.y;
 
           if (dx || dy) {
             dispatch({ type: `ROTATE`, dx, dy });
@@ -133,7 +133,7 @@ export const Canvas = ({ background = `#FFFFFF`, onZoomChange }: Props): JSX.Ele
       onWheel={handleWheel}
       className="relative overflow-hidden w-full h-full"
     >
-      <canvas ref={canvas} className="absolute inset-l-0 inset-t-0 cursor-grab">
+      <canvas ref={canvas} className="absolute inset-l-0 inset-t-0 cursor-move">
         Your browser does not support the canvas tag.
       </canvas>
       <Error onClose={handleCloseError}>

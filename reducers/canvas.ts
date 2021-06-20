@@ -94,8 +94,6 @@ const initialize = (state: State, container: HTMLDivElement, canvas: HTMLCanvasE
 
   gl.enable(gl.CULL_FACE);
   gl.cullFace(gl.FRONT);
-  gl.enable(gl.BLEND);
-  gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
   // Image program
   const vert = new GLSLShader(gl, gl.VERTEX_SHADER, CUBE_VERT, onerror);
@@ -134,7 +132,7 @@ const initialize = (state: State, container: HTMLDivElement, canvas: HTMLCanvasE
  * @returns Next state
  */
 const resize = (state: State): State => {
-  const { gl, container, canvas } = state;
+  const { gl, container, canvas, camera } = state;
 
   // Resize viewport
   gl.viewport(0, 0, container.offsetWidth, container.offsetHeight);
@@ -142,7 +140,8 @@ const resize = (state: State): State => {
   canvas.width = container.offsetWidth;
   canvas.height = container.offsetHeight;
 
-  // Update matrices
+  // Update camera
+  camera.resolution = { width: container.offsetWidth, height: container.offsetHeight };
 
   return render(state);
 };

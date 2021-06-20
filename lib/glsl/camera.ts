@@ -59,19 +59,19 @@ export class GLSLCamera {
     near: 0.01,
     far: 10.0,
     fov: toRad(30),
-    fovMin: toRad(glMatrix.EPSILON),
-    fovMax: toRad(180)
+    fovMin: toRad(10),
+    fovMax: toRad(160)
   };
 
   /** Static default view properties */
   private static _defaultView: GLSLCameraView = {
     reference: `self`,
-    position: vec3.fromValues(0, 0, 2),
+    position: vec3.fromValues(0, 0, 5),
     front: vec3.fromValues(0, 0, -1),
     right: vec3.fromValues(1, 0, 0),
     up: vec3.fromValues(0, 1, 0),
-    pitch: -90,
-    yaw: 0
+    pitch: 0,
+    yaw: -90
   };
 
   /** Static default dynamic properties */
@@ -79,7 +79,7 @@ export class GLSLCamera {
     fast: false,
     speed: 0.5,
     speedFast: 1,
-    sensibility: 15,
+    sensibility: 0.1,
     zoomFactor: 1.0625
   };
 
@@ -222,7 +222,7 @@ export class GLSLCamera {
    * Update view matrix.
    */
   private updateViewMatrix(): void {
-    mat4.lookAt(this._view, this._position, this._front, this._up);
+    mat4.lookAt(this._view, this._position, vec3.add(vec3.create(), this._position, this._front), this._up);
   }
 
   /**
@@ -551,7 +551,10 @@ export class GLSLCamera {
 
   /** Rotation angles */
   public set rotation(angles: vec3) {
-    const rad = angles.map(v => toRad(v));
+    this._yaw = angles[0];
+    this._pitch = Math.max(-89, Math.min(89, angles[1]));
+
+    const rad = [ toRad(this._yaw), toRad(this._pitch), toRad(angles[2]) ];
 
     this._front[0] = Math.cos(rad[1]) * Math.cos(rad[0]);
     this._front[1] = Math.sin(rad[1]);
@@ -560,6 +563,7 @@ export class GLSLCamera {
 
     this._up[0] = Math.sin(rad[2]);
     this._up[1] = Math.cos(rad[2]);
+    this._up[2] = 0;
     vec3.normalize(this._up, this._up);
 
     vec3.cross(this._right, this._front, this._up);
@@ -659,13 +663,16 @@ export class GLSLCamera {
    * @param displacement Displacement
    */
   public rotate(displacement: vec2): void {
-    this._yaw = displacement[0] * this.sensibility;
-    this._pitch = Math.max(-89.0, Math.min(89.0, this._pitch + displacement[1] * this.sensibility));
+    this._pitch = Math.max(-89, Math.min(89, this._pitch + displacement[1] * this.sensibility));
+    this._yaw += displacement[0] * this.sensibility;
+
+    const pitch = toRad(this._pitch);
+    const yaw = toRad(this._yaw);
 
     this.front = vec3.fromValues(
-      Math.cos(toRad(this._pitch)) * Math.cos(toRad(this._yaw)),
-      Math.sin(toRad(this._pitch)),
-      Math.cos(toRad(this._pitch)) * Math.sin(toRad(this._yaw))
+      Math.cos(pitch) * Math.cos(yaw),
+      Math.sin(pitch),
+      Math.cos(pitch) * Math.sin(yaw)
     );
   }
 
@@ -673,7 +680,7 @@ export class GLSLCamera {
    * Increase zoom.
    */
   public zoomIn(): void {
-    const fov = Math.min(this._fovMax, this._fov / this.zoomFactor);
+    const fov = Math.max(this._fovMin, this._fov / this.zoomFactor);
 
     if (fov !== this._fov) {
       this._fov = fov;
@@ -685,7 +692,7 @@ export class GLSLCamera {
    * Decrease zoom.
    */
   public zoomOut(): void {
-    const fov = Math.max(this._fovMax, this._fov * this.zoomFactor);
+    const fov = Math.min(this._fovMax, this._fov * this.zoomFactor);
 
     if (fov !== this._fov) {
       this._fov = fov;

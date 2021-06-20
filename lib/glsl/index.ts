@@ -1,3 +1,4 @@
+export { GLSLCamera } from "./camera";
 export { GLSLCube } from "./cube";
 export { GLSLPlane } from "./plane";
 export { GLSLProgram } from "./program";

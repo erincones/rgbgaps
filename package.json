@@ -27,6 +27,7 @@
     "@fortawesome/free-solid-svg-icons": "^5.15.3",
     "@fortawesome/react-fontawesome": "^0.1.14",
     "cowsayjs": "^1.0.3",
+    "gl-matrix": "^3.3.0",
     "next": "^10.2.0",
     "postcss-flexbugs-fixes": "^5.0.2",
     "postcss-import": "^14.0.0",

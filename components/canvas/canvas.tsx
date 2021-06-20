@@ -1,8 +1,10 @@
 import { useRef, useReducer, useState, useCallback, useEffect, MutableRefObject, MouseEventHandler, WheelEventHandler } from "react";
 
-import { canvasReducer, initialCanvas, SCALE_MIN, SCALE_MAX } from "../../reducers/canvas";
+import { canvasReducer, initialCanvas } from "../../reducers/canvas";
 
 import { Error } from "./error";
+
+import { GLSLCamera } from "../../lib/glsl";
 
 
 /**
@@ -10,7 +12,7 @@ import { Error } from "./error";
  */
 interface Props {
   readonly background?: string;
-  readonly onScaleChange?: (scale: number, min?: number, max?: number) => unknown;
+  readonly onZoomChange?: (camera: GLSLCamera) => unknown;
 }
 
 /** Plane point */
@@ -25,12 +27,12 @@ interface Point {
  *
  * @param props Canvas component properties
  */
-export const Canvas = ({ background = `#FFFFFF`, onScaleChange }: Props): JSX.Element => {
+export const Canvas = ({ background = `#FFFFFF`, onZoomChange }: Props): JSX.Element => {
   const container = useRef() as MutableRefObject<HTMLDivElement>;
   const canvas = useRef() as MutableRefObject<HTMLCanvasElement>;
   const css = useRef() as MutableRefObject<HTMLStyleElement>;
 
-  const [ { scale, errors }, dispatch ] = useReducer(canvasReducer, initialCanvas);
+  const [ { camera, errors }, dispatch ] = useReducer(canvasReducer, initialCanvas);
   const [, setMouse ] = useState<Point>();
 
 
@@ -46,11 +48,7 @@ export const Canvas = ({ background = `#FFFFFF`, onScaleChange }: Props): JSX.El
 
   // Wheel handler
   const handleWheel: WheelEventHandler<HTMLDivElement> = useCallback(e => {
-    dispatch({
-      type: e.deltaY < 0 ? `ZOOM_IN` : `ZOOM_OUT`,
-      x: e.pageX - e.currentTarget.offsetLeft,
-      y: e.pageY - e.currentTarget.offsetTop
-    });
+    dispatch({ type: e.deltaY < 0 ? `ZOOM_IN` : `ZOOM_OUT` });
   }, []);
 
   // Close error handler
@@ -93,7 +91,7 @@ export const Canvas = ({ background = `#FFFFFF`, onScaleChange }: Props): JSX.El
           const dy = mouse.y - point.y;
 
           if (dx || dy) {
-            dispatch({ type: `TRANSLATE`, dx, dy });
+            dispatch({ type: `ROTATE`, dx, dy });
           }
 
           return mouse;
@@ -123,8 +121,8 @@ export const Canvas = ({ background = `#FFFFFF`, onScaleChange }: Props): JSX.El
 
   // Trigger scale change
   useEffect(() => {
-    onScaleChange?.(scale, SCALE_MIN, SCALE_MAX);
-  }, [ onScaleChange, scale ]);
+    onZoomChange?.(camera);
+  }, [ onZoomChange, camera, camera.fov ]);
 
 
   // Return canvas

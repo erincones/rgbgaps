@@ -172,7 +172,7 @@ export class GLSLCamera {
    * @param width Canvas width
    * @param height Canvas height
    */
-  constructor(width: number, height: number) {
+  constructor(width = 300, height = 150) {
     this._defaultProjection = GLSLCamera._defaultProjection;
     this._defaultView = GLSLCamera._defaultView;
     this._defaultDynamic = GLSLCamera._defaultDynamic;

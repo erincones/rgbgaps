@@ -1,4 +1,4 @@
-import { GLSLShader, GLSLProgram, GLSLTexture2D, GLSLCube } from "../lib/glsl";
+import { GLSLShader, GLSLProgram, GLSLCamera, GLSLCube } from "../lib/glsl";
 
 import { hexToRGBA, WHITE, RGBA } from "../helpers/color";
 
@@ -13,14 +13,10 @@ interface State {
   readonly gl: WebGL2RenderingContext;
 
   readonly program: GLSLProgram;
-  readonly texture: GLSLTexture2D;
+  readonly camera: GLSLCamera;
   readonly cube: GLSLCube;
 
   readonly background: RGBA;
-
-  readonly x: number;
-  readonly y: number;
-  readonly scale: number;
 
   readonly errors: ReadonlyArray<string>;
 }
@@ -30,43 +26,29 @@ type Action = {
   readonly type: `INITIALIZE`;
   readonly container: HTMLDivElement;
   readonly canvas: HTMLCanvasElement;
+  readonly background?: string;
 } | {
   readonly type: `RESIZE`;
 } | {
   readonly type: `SET_BACKGROUND`;
   readonly background: string;
 } | {
-  readonly type: `TRANSLATE`;
+  readonly type: `ROTATE`;
   readonly dx: number;
   readonly dy: number;
 } | {
   readonly type: `SCALE`;
-  readonly scale: number;
-  readonly x?: number;
-  readonly y?: number;
+  readonly fov: number;
 } | {
   readonly type: `ZOOM_IN`;
-  readonly x?: number;
-  readonly y?: number;
 } | {
   readonly type: `ZOOM_OUT`;
-  readonly x?: number;
-  readonly y?: number;
 } | {
   readonly type: `CLOSE_ERRORS`;
 } | {
   readonly type: `CLEAN_UP`;
 };
 
-
-/** Minimum scale */
-export const SCALE_MIN = 1;
-
-/** Maximum scale */
-export const SCALE_MAX = 20;
-
-/** Scale factor */
-export const SCALE_FACTOR = 1.25;
 
 
 /**
@@ -76,15 +58,14 @@ export const SCALE_FACTOR = 1.25;
  * @returns Next state
  */
 const render = (state: State): State => {
-  const { gl, container, program, cube, scale } = state;
+  const { gl, program, camera, cube } = state;
 
   // Reset context
   gl.clear(gl.COLOR_BUFFER_BIT);
 
   // Set uniforms
   program.use();
-  gl.uniform2f(program.getLocation(`u_canvas`), container.offsetWidth, container.offsetHeight);
-  gl.uniform1f(program.getLocation(`u_scale`), scale);
+  camera.bind(gl, program);
 
   // Draw cube
   cube.draw();
@@ -97,14 +78,13 @@ const render = (state: State): State => {
 /**
  * Initialize canvas state.
  *
+ * @param state Current state
  * @param container Canvas container
  * @param canvas Canvas element
  * @param background Background color
- * @param grid0 First grid color
- * @param grid1 Second grid color
  * @returns Next state
  */
-const initialize = (container: HTMLDivElement, canvas: HTMLCanvasElement): State => {
+const initialize = (state: State, container: HTMLDivElement, canvas: HTMLCanvasElement, background?: string): State => {
   // Error handler function
   const errors: string[] = [];
   const onerror = (error: string) => { errors.push(error); };
@@ -123,8 +103,11 @@ const initialize = (container: HTMLDivElement, canvas: HTMLCanvasElement): State
   const program = new GLSLProgram(gl, vert, frag, onerror);
   program.deleteShaders();
 
-  // Create texture and cube
-  const texture = new GLSLTexture2D(gl, null, 0, onerror);
+  // Update camera resolution
+  const { camera } = state;
+  camera.resolution = { width: container.offsetWidth, height: container.offsetHeight };
+
+  // Cube
   const cube = new GLSLCube(gl, onerror);
 
   // Resize viewport
@@ -137,12 +120,9 @@ const initialize = (container: HTMLDivElement, canvas: HTMLCanvasElement): State
     canvas,
     gl,
     program,
-    texture,
+    camera,
     cube,
-    background: WHITE,
-    x: 0,
-    y: 0,
-    scale: 1,
+    background: (background && hexToRGBA(background)) || state.background,
     errors
   });
 };
@@ -189,46 +169,37 @@ const setBackground = (state: State, bg: string): State => {
 
 
 /**
- * Move the image to the given position.
- *
- * @param state Current state
- * @param x Horizontal position
- * @param y Vertical position
- * @returns Next state
- */
-const move = (state: State, x: number, y: number): State => {
-  const { container, scale } = state;
-
-  return state;
-};
-
-/**
- * Translate the image.
+ * Rotate the camera.
  *
  * @param state Current state
  * @param dx Horizontal displacement
  * @param dy Vertical displacement
- * @param scale New scale
  * @returns Next state
  */
-const translate = (state: State, dx: number, dy: number): State => {
-  return state;
+const rotate = (state: State, dx: number, dy: number): State => {
+  state.camera.rotate([ dx, dy ]);
+  return render(state);
 };
 
 /**
- * Scale the image.
+ * Apply zoom.
  *
  * @param state Current state
- * @param scale New scale
+ * @param fov New field of view
  * @returns Next state
  */
-const scale = (state: State, scale: number, x = NaN, y = NaN): State => {
-  const scaleNew = Math.min(SCALE_MAX, Math.max(SCALE_MIN, scale));
-  const factor = scaleNew / state.scale;
+const zoom = (state: State, fov: number | `in` | `out`): State => {
+  const { camera } = state;
 
+  switch (fov) {
+    case `in`: camera.zoomIn(); break;
+    case `out`: camera.zoomOut(); break;
+    default: camera.fov = fov;
+  }
 
-  return state;
+  return render(state);
 };
+
 
 /**
  * Release all resources.
@@ -237,10 +208,9 @@ const scale = (state: State, scale: number, x = NaN, y = NaN): State => {
  * @returns Next state
  */
 const cleanUp = (state: State): State => {
-  const { program, texture, cube } = state;
+  const { program, cube } = state;
 
   program.delete();
-  texture.delete();
   cube.delete();
 
   return render(state);
@@ -253,12 +223,9 @@ export const initialCanvas: State = {
   canvas: null as never,
   gl: null as never,
   program: null as never,
-  texture: null as never,
+  camera: new GLSLCamera(),
   cube: null as never,
   background: WHITE,
-  x: 0,
-  y: 0,
-  scale: 1,
   errors: []
 };
 
@@ -272,16 +239,16 @@ export const initialCanvas: State = {
  */
 export const canvasReducer = (state: State, action: Action): State => {
   switch (action.type) {
-    case `INITIALIZE`: return initialize(action.container, action.canvas);
+    case `INITIALIZE`: return initialize(state, action.container, action.canvas, action.background);
     case `RESIZE`: return resize(state);
 
     case `SET_BACKGROUND`: return setBackground(state, action.background);
 
-    case `TRANSLATE`: return translate(state, action.dx, action.dy);
+    case `ROTATE`: return rotate(state, action.dx, action.dy);
 
-    case `ZOOM_IN`: return scale(state, state.scale * SCALE_FACTOR, action.x, action.y);
-    case `ZOOM_OUT`: return scale(state, state.scale / SCALE_FACTOR, action.x, action.y);
-    case `SCALE`: return scale(state, action.scale, action.x, action.y);
+    case `ZOOM_IN`: return zoom(state, `in`);
+    case `ZOOM_OUT`: return zoom(state, `out`);
+    case `SCALE`: return zoom(state, action.fov);
 
     case `CLOSE_ERRORS`: return { ...state, errors: [] };
     case `CLEAN_UP`: return cleanUp(state);

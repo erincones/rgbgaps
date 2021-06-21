@@ -508,7 +508,7 @@ export class GLSLCamera {
   /** Position */
   public set position(position: vec3) {
     vec3.copy(this._position, position);
-    this.updateMatrices();
+    this.updateViewMatrix();
   }
 
   /** Normalized direction */
@@ -644,7 +644,7 @@ export class GLSLCamera {
       case `BACK`:  vec3.scaleAndAdd(this._position, this._position, vec3.cross(vec3.create(), this._up, this._right), -distance);
     }
 
-    this.updateMatrices();
+    this.updateViewMatrix();
   }
 
   /**
@@ -661,19 +661,29 @@ export class GLSLCamera {
    * Rotate the camera.
    *
    * @param displacement Displacement
+   * @param target Target
    */
-  public rotate(displacement: vec2): void {
+  public rotate(displacement: vec2, target?: vec3): void {
     this._pitch = Math.max(-89, Math.min(89, this._pitch + displacement[1] * this.sensibility));
     this._yaw += displacement[0] * this.sensibility;
 
     const pitch = toRad(this._pitch);
     const yaw = toRad(this._yaw);
 
-    this.front = vec3.fromValues(
+    this._front = vec3.fromValues(
       Math.cos(pitch) * Math.cos(yaw),
       Math.sin(pitch),
       Math.cos(pitch) * Math.sin(yaw)
     );
+
+    vec3.normalize(this._front, this._front);
+    vec3.cross(this._right, this._front, this._up);
+
+    if (target) {
+      vec3.scale(this._position, this._front, -vec3.distance(target, this._position));
+    }
+
+    this.updateViewMatrix();
   }
 
   /**

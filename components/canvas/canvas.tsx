@@ -91,7 +91,7 @@ export const Canvas = ({ background = `#FFFFFF`, onZoomChange }: Props): JSX.Ele
           const dy = point.y - mouse.y;
 
           if (dx || dy) {
-            dispatch({ type: `ROTATE`, dx, dy });
+            dispatch({ type: `ROTATE`, dx, dy, center: [ 0, 0, 0 ] });
           }
 
           return mouse;

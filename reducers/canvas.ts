@@ -1,3 +1,5 @@
+import { vec3 } from "gl-matrix";
+
 import { GLSLShader, GLSLProgram, GLSLCamera, GLSLCube } from "../lib/glsl";
 
 import { hexToRGBA, WHITE, RGBA } from "../helpers/color";
@@ -36,6 +38,7 @@ type Action = {
   readonly type: `ROTATE`;
   readonly dx: number;
   readonly dy: number;
+  readonly center?: vec3;
 } | {
   readonly type: `SCALE`;
   readonly fov: number;
@@ -173,10 +176,11 @@ const setBackground = (state: State, bg: string): State => {
  * @param state Current state
  * @param dx Horizontal displacement
  * @param dy Vertical displacement
+ * @param center Reference point
  * @returns Next state
  */
-const rotate = (state: State, dx: number, dy: number): State => {
-  state.camera.rotate([ dx, dy ]);
+const rotate = (state: State, dx: number, dy: number, center?: vec3): State => {
+  state.camera.rotate([ dx, dy ], center);
   return render(state);
 };
 
@@ -243,7 +247,7 @@ export const canvasReducer = (state: State, action: Action): State => {
 
     case `SET_BACKGROUND`: return setBackground(state, action.background);
 
-    case `ROTATE`: return rotate(state, action.dx, action.dy);
+    case `ROTATE`: return rotate(state, action.dx, action.dy, action.center);
 
     case `ZOOM_IN`: return zoom(state, `in`);
     case `ZOOM_OUT`: return zoom(state, `out`);

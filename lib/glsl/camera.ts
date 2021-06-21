@@ -618,12 +618,17 @@ export class GLSLCamera {
   public bind(gl: WebGLContext, program: GLSLProgram): void {
     if (!program.status) return;
 
+    const projection = this._projection === `orthogonal` ? this._orthogonal : this._perspective;
+    const projView = mat4.create();
+    mat4.multiply(projView, projection, this._view);
+
     gl.uniform3fv(program.getLocation(`u_eye`), this._position);
     gl.uniform3fv(program.getLocation(`u_ray`), this._front);
     gl.uniform3fv(program.getLocation(`u_up`), this._up);
     gl.uniform1f(program.getLocation(`u_fov`), this._fov);
     gl.uniformMatrix4fv(program.getLocation(`u_view`), false, this._view);
-    gl.uniformMatrix4fv(program.getLocation(`u_proj`), false, this._projection === `orthogonal` ? this._orthogonal : this._perspective);
+    gl.uniformMatrix4fv(program.getLocation(`u_proj`), false, projection);
+    gl.uniformMatrix4fv(program.getLocation(`u_proj_view`), false, projView);
   }
 
   /**

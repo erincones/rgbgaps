@@ -45,9 +45,6 @@ export const SEO = ({ title, twitterCard = true, openGraph = true }: Props): JSX
       {/* Title and manifest */}
       <title>{title}</title>
       <link rel="manifest" href="/manifest.json" />
-
-      {/* Global custom CSS */}
-      <style id="__global_css" />
     </Head>
   );
 };

@@ -19,7 +19,7 @@ interface Props {
  */
 export const Button = ({ title, active, children, onClick }: Props): JSX.Element => {
   return (
-    <button title={title} onClick={onClick} className={`${active ? `text-lightBlue-800 ` : `text-blueGray-800 `}hover:text-blueGray-600 focus:outline-none focus:ring`}>
+    <button type="button" title={title} onClick={onClick} className={`${active ? `text-lightBlue-800 hover:text-blueGray-700 ` : `text-blueGray-800 hover:text-blueGray-600 `}focus:outline-none focus:ring`}>
       {children}
     </button>
   );

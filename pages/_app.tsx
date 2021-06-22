@@ -12,10 +12,15 @@ import colors from "tailwindcss/colors";
 import "@fortawesome/fontawesome-svg-core/styles.css";
 import "tailwindcss/tailwind.css";
 
+import { glMatrix } from "gl-matrix";
+
 
 // Setup font awesome
 library.add(fas, fab, far);
 config.autoAddCss = false;
+
+// Setup glMatrix type
+glMatrix.setMatrixArrayType(Array);
 
 
 /**

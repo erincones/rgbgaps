@@ -37,7 +37,7 @@ export const Subsection = ({ title, defaultOpen = false, children }: SubsectionP
   return (
     <li className="pl-2 py-1">
       {/* Header */}
-      <header className="hover:text-blueGray-700">
+      <header className="hover:text-blueGray-700 mb-1">
         <button
           onClick={handleClick}
           onFocus={handleFocus}

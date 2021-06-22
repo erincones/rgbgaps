@@ -1,3 +1,7 @@
+import { Dispatch } from "react";
+
+import { CanvasState, CanvasAction } from "../../reducers/canvas";
+
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Separator } from "./separator";
 import { Button } from "./button";
@@ -7,7 +11,8 @@ import { Button } from "./button";
  * Toolbar component properties
  */
 interface Props {
-  readonly onClose?: () => void;
+  readonly state: CanvasState;
+  readonly dispatch: Dispatch<CanvasAction>;
 }
 
 
@@ -16,11 +21,14 @@ interface Props {
  *
  * @param props Toolbar component properties
  */
-export const Toolbar = ({ onClose }: Props): JSX.Element => {
+export const Toolbar = ({ state, dispatch }: Props): JSX.Element => {
+  const { camera } = state;
+
+  // Return toolbar
   return (
     <div className="flex bg-blueGray-300 border-b border-blueGray-400 px-2 py-1">
       <div className="space-x-1">
-        <Button title="Reset camera" onClick={undefined}>
+        <Button title="Reset camera" onClick={() => { dispatch({ type: `RESET_CAMERA` }); }}>
           <FontAwesomeIcon icon="home" fixedWidth />
         </Button>
       </div>
@@ -46,6 +54,10 @@ export const Toolbar = ({ onClose }: Props): JSX.Element => {
       <Separator />
 
       <div className="space-x-1">
+        <Button title="Toggle projection" active={camera.projection === `perspective`} onClick={() => { dispatch({ type: `TOGGLE_PROJECTION` }); }}>
+          <FontAwesomeIcon icon="cube" fixedWidth />
+        </Button>
+
         <Button title="Show axis" onClick={undefined}>
           <FontAwesomeIcon icon="ruler-combined" fixedWidth />
         </Button>
@@ -64,6 +76,12 @@ export const Toolbar = ({ onClose }: Props): JSX.Element => {
 
         <Button title="Show nearest" onClick={undefined}>
           <FontAwesomeIcon icon="route" fixedWidth />
+        </Button>
+      </div>
+
+      <div className="flex-grow text-right">
+        <Button title="Help" onClick={undefined}>
+          <FontAwesomeIcon icon="question" fixedWidth />
         </Button>
       </div>
     </div>

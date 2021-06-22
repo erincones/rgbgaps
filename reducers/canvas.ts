@@ -9,7 +9,7 @@ import CUBE_FRAG from "../shaders/cube.frag";
 
 
 /** Canvas state */
-interface State {
+export interface CanvasState {
   readonly container: HTMLDivElement;
   readonly canvas: HTMLCanvasElement;
   readonly gl: WebGL2RenderingContext;
@@ -24,7 +24,7 @@ interface State {
 }
 
 /** Canvas action */
-type Action = {
+export type CanvasAction = {
   readonly type: `INITIALIZE`;
   readonly container: HTMLDivElement;
   readonly canvas: HTMLCanvasElement;
@@ -34,6 +34,10 @@ type Action = {
 } | {
   readonly type: `SET_BACKGROUND`;
   readonly background: string;
+} | {
+  readonly type: `RESET_CAMERA`
+} | {
+  readonly type: `TOGGLE_PROJECTION`
 } | {
   readonly type: `ROTATE`;
   readonly dx: number;
@@ -60,7 +64,7 @@ type Action = {
  * @param state Current state
  * @returns Next state
  */
-const render = (state: State): State => {
+const render = (state: CanvasState): CanvasState => {
   const { gl, program, camera, cube } = state;
 
   // Reset context
@@ -74,7 +78,16 @@ const render = (state: State): State => {
   cube.draw();
 
   // Return state
-  return state;
+  return {
+    container: state.container,
+    canvas: state.canvas,
+    gl,
+    program,
+    camera,
+    cube,
+    background: state.background,
+    errors: state.errors
+  };
 };
 
 
@@ -87,7 +100,7 @@ const render = (state: State): State => {
  * @param background Background color
  * @returns Next state
  */
-const initialize = (state: State, container: HTMLDivElement, canvas: HTMLCanvasElement, background?: string): State => {
+const initialize = (state: CanvasState, container: HTMLDivElement, canvas: HTMLCanvasElement, background?: string): CanvasState => {
   // Error handler function
   const errors: string[] = [];
   const onerror = (error: string) => { errors.push(error); };
@@ -98,24 +111,40 @@ const initialize = (state: State, container: HTMLDivElement, canvas: HTMLCanvasE
   gl.enable(gl.CULL_FACE);
   gl.cullFace(gl.FRONT);
 
+  // Resize viewport
+  gl.viewport(0, 0, container.offsetWidth, container.offsetHeight);
+  canvas.width = container.offsetWidth;
+  canvas.height = container.offsetHeight;
+
+  // Background color
+  const bg = (background && hexToRGBA(background)) || state.background;
+  gl.clearColor(bg[0], bg[1], bg[2], bg[3]);
+
   // Image program
   const vert = new GLSLShader(gl, gl.VERTEX_SHADER, CUBE_VERT, onerror);
   const frag = new GLSLShader(gl, gl.FRAGMENT_SHADER, CUBE_FRAG, onerror);
   const program = new GLSLProgram(gl, vert, frag, onerror);
   program.deleteShaders();
 
-  // Update camera resolution
-  const { camera } = state;
-  camera.resolution = { width: container.offsetWidth, height: container.offsetHeight };
-
   // Cube
   const cube = new GLSLCube(gl, onerror);
 
-  // Resize viewport
-  gl.viewport(0, 0, container.offsetWidth, container.offsetHeight);
-  canvas.width = container.offsetWidth;
-  canvas.height = container.offsetHeight;
+  // Update camera resolution
+  const { camera } = state;
+  camera.resolution = { width: container.offsetWidth, height: container.offsetHeight };
+  camera.position = [ 0, 0, -7 ];
+  camera.rotate([ -200, -200 ], [ 0, 0, 0 ]);
 
+  camera.defaultView = {
+    position: camera.position,
+    front: camera.front,
+    right: camera.right,
+    up: camera.up,
+    pitch: camera.pitch,
+    yaw: camera.yaw
+  };
+
+  // Render
   return render({
     container,
     canvas,
@@ -134,7 +163,7 @@ const initialize = (state: State, container: HTMLDivElement, canvas: HTMLCanvasE
  * @param state Current state
  * @returns Next state
  */
-const resize = (state: State): State => {
+const resize = (state: CanvasState): CanvasState => {
   const { gl, container, canvas, camera } = state;
 
   // Resize viewport
@@ -155,10 +184,9 @@ const resize = (state: State): State => {
  *
  * @param state Current state
  * @param bg Background color
- * @param g0 First grid color
- * @param g1 Second grid color
+ * @returns Next state
  */
-const setBackground = (state: State, bg: string): State => {
+const setBackground = (state: CanvasState, bg: string): CanvasState => {
   const { gl } = state;
 
   // Parse and update background color
@@ -166,41 +194,16 @@ const setBackground = (state: State, bg: string): State => {
 
   gl.clearColor(background[0], background[1], background[2], background[3]);
 
-  return render({ ...state, background });
-};
-
-
-/**
- * Rotate the camera.
- *
- * @param state Current state
- * @param dx Horizontal displacement
- * @param dy Vertical displacement
- * @param center Reference point
- * @returns Next state
- */
-const rotate = (state: State, dx: number, dy: number, center?: vec3): State => {
-  state.camera.rotate([ dx, dy ], center);
-  return render(state);
-};
-
-/**
- * Apply zoom.
- *
- * @param state Current state
- * @param fov New field of view
- * @returns Next state
- */
-const zoom = (state: State, fov: number | `in` | `out`): State => {
-  const { camera } = state;
-
-  switch (fov) {
-    case `in`: camera.zoomIn(); break;
-    case `out`: camera.zoomOut(); break;
-    default: camera.fov = fov;
-  }
-
-  return render(state);
+  return render({
+    container: state.container,
+    canvas: state.canvas,
+    gl: state.gl,
+    program: state.program,
+    camera: state.camera,
+    cube: state.cube,
+    background,
+    errors: state.errors
+  });
 };
 
 
@@ -210,7 +213,7 @@ const zoom = (state: State, fov: number | `in` | `out`): State => {
  * @param state Current state
  * @returns Next state
  */
-const cleanUp = (state: State): State => {
+const cleanUp = (state: CanvasState): CanvasState => {
   const { program, cube } = state;
 
   program.delete();
@@ -221,7 +224,7 @@ const cleanUp = (state: State): State => {
 
 
 /** Initial canvas state */
-export const initialCanvas: State = {
+export const initialCanvas: CanvasState = {
   container: null as never,
   canvas: null as never,
   gl: null as never,
@@ -240,18 +243,41 @@ export const initialCanvas: State = {
  * @param action Action
  * @returns Next state
  */
-export const canvasReducer = (state: State, action: Action): State => {
+export const canvasReducer = (state: CanvasState, action: CanvasAction): CanvasState => {
+  const { camera } = state;
+
+
   switch (action.type) {
     case `INITIALIZE`: return initialize(state, action.container, action.canvas, action.background);
     case `RESIZE`: return resize(state);
 
     case `SET_BACKGROUND`: return setBackground(state, action.background);
 
-    case `ROTATE`: return rotate(state, action.dx, action.dy, action.center);
 
-    case `ZOOM_IN`: return zoom(state, `in`);
-    case `ZOOM_OUT`: return zoom(state, `out`);
-    case `SCALE`: return zoom(state, action.fov);
+    case `RESET_CAMERA`:
+      camera.reset();
+      return render(state);
+
+    case `TOGGLE_PROJECTION`:
+      camera.projection = camera.projection === `perspective` ? `orthogonal` : `perspective`;
+      return render(state);
+
+    case `ROTATE`:
+      camera.rotate([ action.dx, action.dy ], action.center);
+      return render(state);
+
+    case `ZOOM_IN`:
+      camera.zoomIn();
+      return render(state);
+
+    case `ZOOM_OUT`:
+      camera.zoomOut();
+      return render(state);
+
+    case `SCALE`:
+      camera.fov = action.fov;
+      return render(state);
+
 
     case `CLOSE_ERRORS`: return { ...state, errors: [] };
     case `CLEAN_UP`: return cleanUp(state);

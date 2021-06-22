@@ -1,18 +1,17 @@
-import { useRef, useReducer, useState, useCallback, useEffect, MutableRefObject, MouseEventHandler, WheelEventHandler } from "react";
+import { useRef, useState, useEffect, MutableRefObject, Dispatch, MouseEventHandler, WheelEventHandler } from "react";
 
-import { canvasReducer, initialCanvas } from "../../reducers/canvas";
+import { usePrevious } from "../../hooks/previous";
+import { CanvasState, CanvasAction } from "../../reducers/canvas";
 
 import { Error } from "./error";
-
-import { GLSLCamera } from "../../lib/glsl";
 
 
 /**
  * Canvas component properties
  */
-interface Props {
-  readonly background?: string;
-  readonly onZoomChange?: (camera: GLSLCamera) => unknown;
+ interface Props {
+  readonly state: CanvasState;
+  readonly dispatch: Dispatch<CanvasAction>;
 }
 
 /** Plane point */
@@ -26,35 +25,34 @@ interface Point {
  * Canvas component
  *
  * @param props Canvas component properties
+ * @param ref Reference
  */
-export const Canvas = ({ background = `#FFFFFF`, onZoomChange }: Props): JSX.Element => {
+export const Canvas = ({ state, dispatch }: Props): JSX.Element => {
   const container = useRef() as MutableRefObject<HTMLDivElement>;
   const canvas = useRef() as MutableRefObject<HTMLCanvasElement>;
   const css = useRef() as MutableRefObject<HTMLStyleElement>;
 
-  const [ { camera, errors }, dispatch ] = useReducer(canvasReducer, initialCanvas);
-  const [, setMouse ] = useState<Point>();
+  const [ mouse, setMouse ] = useState<Point>();
+  const prevMouse = usePrevious(mouse);
 
 
   // Mouse down handler
-  const handleMouseDown: MouseEventHandler<HTMLDivElement> = useCallback(e => {
-    e.preventDefault();
-
+  const handleMouseDown: MouseEventHandler<HTMLDivElement> = e => {
     if (e.buttons === 1) {
-      css.current.textContent = `* { cursor: move !important }`;
+      css.current.media = ``;
       setMouse({ x: e.clientX, y: e.clientY });
     }
-  }, []);
+  };
 
   // Wheel handler
-  const handleWheel: WheelEventHandler<HTMLDivElement> = useCallback(e => {
+  const handleWheel: WheelEventHandler<HTMLDivElement> = e => {
     dispatch({ type: e.deltaY < 0 ? `ZOOM_IN` : `ZOOM_OUT` });
-  }, []);
+  };
 
   // Close error handler
-  const handleCloseError = useCallback(() => {
-    dispatch({ type: `CLOSE_ERRORS` }); }
-  , []);
+  const handleCloseError = () => {
+    dispatch({ type: `CLOSE_ERRORS` });
+  };
 
 
   // Setup canvas
@@ -65,37 +63,24 @@ export const Canvas = ({ background = `#FFFFFF`, onZoomChange }: Props): JSX.Ele
       canvas: canvas.current
     });
 
-    // Get global css
-    css.current = document.getElementById(`__global_css`) as HTMLStyleElement;
-
+    // Global css
+    css.current = document.head.appendChild(document.createElement(`style`));
+    css.current.innerText = `* { cursor: grabbing !important }`;
+    css.current.media = `not all`;
 
     // Viewport size management
     const resizeHandler = () => { dispatch({ type: `RESIZE` }); };
 
     // Mouse up handler
     const handleMouseUp = () => {
-      css.current.textContent = ``;
+      css.current.media = `not all`;
       setMouse(undefined);
     };
 
     // Mouse move handler
     const handleMouseMove = (e: MouseEvent) => {
-      e.preventDefault();
-
       if (e.buttons === 1) {
-        setMouse(point => {
-          if (!point) return undefined;
-
-          const mouse = { x: e.clientX, y: e.clientY };
-          const dx = mouse.x - point.x;
-          const dy = point.y - mouse.y;
-
-          if (dx || dy) {
-            dispatch({ type: `ROTATE`, dx, dy, center: [ 0, 0, 0 ] });
-          }
-
-          return mouse;
-        });
+        setMouse(point => point ? { x: e.clientX, y: e.clientY } : undefined);
       }
     };
 
@@ -111,18 +96,19 @@ export const Canvas = ({ background = `#FFFFFF`, onZoomChange }: Props): JSX.Ele
 
       dispatch({ type: `CLEAN_UP` });
     };
-  }, []);
+  }, [ dispatch ]);
 
-
-  // Update background
+  // Rotate cube
   useEffect(() => {
-    dispatch({ type: `SET_BACKGROUND`, background });
-  }, [ background ]);
+    if (!mouse || !prevMouse) return;
 
-  // Trigger scale change
-  useEffect(() => {
-    onZoomChange?.(camera);
-  }, [ onZoomChange, camera, camera.fov ]);
+    const dx = mouse.x - prevMouse.x;
+    const dy = prevMouse.y - mouse.y;
+
+    if (dx || dy) {
+      dispatch({ type: `ROTATE`, dx, dy, center: [ 0, 0, 0 ] });
+    }
+  }, [ mouse, prevMouse, dispatch ]);
 
 
   // Return canvas
@@ -133,11 +119,11 @@ export const Canvas = ({ background = `#FFFFFF`, onZoomChange }: Props): JSX.Ele
       onWheel={handleWheel}
       className="relative overflow-hidden w-full h-full"
     >
-      <canvas ref={canvas} className="absolute inset-l-0 inset-t-0 cursor-move">
+      <canvas ref={canvas} className="absolute inset-l-0 inset-t-0 md:cursor-grab">
         Your browser does not support the canvas tag.
       </canvas>
       <Error onClose={handleCloseError}>
-        {errors}
+        {state.errors}
       </Error>
     </div>
   );

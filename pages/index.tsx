@@ -1,31 +1,24 @@
-import { useState, useCallback } from "react";
+import { useReducer } from "react";
+
+import { canvasReducer, initialCanvas } from "../reducers/canvas";
 
 import { SEO } from "../components/seo";
-
-import colors from "tailwindcss/colors";
-
 import { SecureContext } from "../components/secure-context";
 import { Sidebar } from "../components/sidebar";
 import { Toolbar } from "../components/toolbar";
-import { Error } from "../components/error";
 import { Canvas } from "../components/canvas";
 
 
 /**
- * Home component
+ * Index component
  *
- * @returns Home component
+ * @returns Index component
  */
-const Home = (): JSX.Element => {
-  const [ error, setError ] = useState<string>();
-
-  // Close error handler
-  const closeError = useCallback(() => {
-    setError(undefined);
-  }, []);
+const Index = (): JSX.Element => {
+  const [ state, dispatch ] = useReducer(canvasReducer, initialCanvas);
 
 
-  // Return the home component
+  // Return index component
   return (
     <>
       <SEO title="RGB Gaps" />
@@ -39,19 +32,13 @@ const Home = (): JSX.Element => {
         </header>
 
         <SecureContext>
-          <Sidebar />
+          <Sidebar state={state} dispatch={dispatch} />
 
           <section className="flex flex-col flex-grow bg-trueGray-50 overflow-hidden">
-            <Toolbar />
-
-            <Error onClose={closeError}>
-              {error}
-            </Error>
+            <Toolbar state={state} dispatch={dispatch} />
 
             <div className="flex-grow overflow-hidden">
-              <Canvas
-                background={colors.white}
-              />
+              <Canvas state={state} dispatch={dispatch} />
             </div>
           </section>
         </SecureContext>
@@ -60,4 +47,4 @@ const Home = (): JSX.Element => {
   );
 };
 
-export default Home;
+export default Index;

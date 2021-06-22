@@ -15,7 +15,6 @@ export interface GLSLCameraProjection {
 
 /** Camera view properties */
 export interface GLSLCameraView {
-  reference: `self` | `target`,
   position: vec3;
   front: vec3;
   right: vec3;
@@ -65,7 +64,6 @@ export class GLSLCamera {
 
   /** Static default view properties */
   private static _defaultView: GLSLCameraView = {
-    reference: `self`,
     position: vec3.fromValues(0, 0, 5),
     front: vec3.fromValues(0, 0, -1),
     right: vec3.fromValues(1, 0, 0),
@@ -79,7 +77,7 @@ export class GLSLCamera {
     fast: false,
     speed: 0.5,
     speedFast: 1,
-    sensibility: 0.1,
+    sensibility: 0.2,
     zoomFactor: 1.0625
   };
 
@@ -124,9 +122,6 @@ export class GLSLCamera {
   /** Orthotogonal matrix */
   private _orthogonal = mat4.create();
 
-
-  /** Rotation reference */
-  private _reference = GLSLCamera._defaultView.reference;
 
   /** Position */
   private _position = vec3.clone(GLSLCamera._defaultView.position);
@@ -185,40 +180,6 @@ export class GLSLCamera {
 
 
   /**
-   * Reset projection properties to default.
-   */
-  private resetProjection(): void {
-    this._projection = this._defaultProjection.type;
-    this._near = this._defaultProjection.near;
-    this._far = this._defaultProjection.far;
-    this._fov = this._defaultProjection.fov;
-  }
-
-  /**
-   * Reset view properties to default.
-   */
-  private resetView(): void {
-    vec3.copy(this._position, this._defaultView.position);
-    vec3.copy(this._front, this._defaultView.front);
-    vec3.copy(this._right, this._defaultView.right);
-    vec3.copy(this._up, this._defaultView.up);
-    this._pitch = this._defaultView.pitch;
-    this._yaw = this._defaultView.yaw;
-  }
-
-  /**
-   * Reset dynamic properties to default.
-   */
-  private resetDynamic(): void {
-    this.fast = this._defaultDynamic.fast;
-    this.speed = this._defaultDynamic.speed;
-    this.speedFast = this._defaultDynamic.speedFast;
-    this.sensibility = this._defaultDynamic.sensibility;
-    this.zoomFactor = this._defaultDynamic.zoomFactor;
-  }
-
-
-  /**
    * Update view matrix.
    */
   private updateViewMatrix(): void {
@@ -230,7 +191,7 @@ export class GLSLCamera {
    */
   private updateProjectionMatrices(): void {
     const aspect = this._width / this._height;
-    const y = Math.atan(this._fov / 2);
+    const y = Math.atan(this._fov / 2) * this._far;
     const x = y * aspect;
 
     mat4.ortho(this._orthogonal, -x, x, -y, y, this._near, this._far);
@@ -271,7 +232,6 @@ export class GLSLCamera {
   /** Default view properties */
   public get defaultView(): GLSLCameraView {
     return {
-      reference: this._defaultView.reference,
       position: vec3.clone(this._defaultView.position),
       front: vec3.clone(this._defaultView.front),
       right: vec3.clone(this._defaultView.right),
@@ -283,7 +243,6 @@ export class GLSLCamera {
 
   /** Default view properties */
   public set defaultView(values: Partial<GLSLCameraView>) {
-    merge(this._defaultView, values, `reference`);
     merge(this._defaultView, values, `position`, vec3);
     merge(this._defaultView, values, `front`, vec3);
     merge(this._defaultView, values, `right`, vec3);
@@ -490,16 +449,6 @@ export class GLSLCamera {
   }
 
 
-  /** Rotation reference */
-  public get reference(): GLSLCamera["_reference"] {
-    return this._reference;
-  }
-
-  /** Rotation reference */
-  public set reference(reference: GLSLCamera["_reference"]) {
-    this._reference = reference;
-  }
-
   /** Position */
   public get position(): vec3 {
     return vec3.clone(this._position);
@@ -588,14 +537,49 @@ export class GLSLCamera {
 
 
   /**
+   * Reset projection properties to default.
+   */
+  public resetProjection(): void {
+    this._projection = this._defaultProjection.type;
+    this._near = this._defaultProjection.near;
+    this._far = this._defaultProjection.far;
+    this._fov = this._defaultProjection.fov;
+
+    this.updateProjectionMatrices();
+  }
+
+  /**
+   * Reset view properties to default.
+   */
+  public resetView(): void {
+    vec3.copy(this._position, this._defaultView.position);
+    vec3.copy(this._front, this._defaultView.front);
+    vec3.copy(this._right, this._defaultView.right);
+    vec3.copy(this._up, this._defaultView.up);
+    this._pitch = this._defaultView.pitch;
+    this._yaw = this._defaultView.yaw;
+
+    this.updateViewMatrix();
+  }
+
+  /**
+   * Reset dynamic properties to default.
+   */
+  public resetDynamic(): void {
+    this.fast = this._defaultDynamic.fast;
+    this.speed = this._defaultDynamic.speed;
+    this.speedFast = this._defaultDynamic.speedFast;
+    this.sensibility = this._defaultDynamic.sensibility;
+    this.zoomFactor = this._defaultDynamic.zoomFactor;
+  }
+
+  /**
    * Reset all properties to default.
    */
   public reset(): void {
     this.resetProjection();
     this.resetView();
     this.resetDynamic();
-
-    this.updateMatrices();
   }
 
   /**
@@ -604,8 +588,6 @@ export class GLSLCamera {
   public resetGeometry(): void {
     this.resetProjection();
     this.resetView();
-
-    this.updateMatrices();
   }
 
 

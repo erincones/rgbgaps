@@ -1,7 +1,7 @@
 import { useState, Dispatch } from "react";
 
 import { CanvasState, CanvasAction } from "../../reducers/canvas";
-import { RGBFormat } from "../../helpers/color";
+import { RGBFormat } from "../../lib/color";
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Section } from "./section";

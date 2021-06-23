@@ -2,7 +2,7 @@ import { vec3 } from "gl-matrix";
 
 import { GLSLShader, GLSLProgram, GLSLCamera, GLSLCube } from "../lib/glsl";
 
-import { toRGB, toHex, WHITE, RGB } from "../helpers/color";
+import { toRGB, toHex, WHITE, RGB } from "../lib/color";
 
 import CUBE_VERT from "../shaders/cube.vert";
 import CUBE_FRAG from "../shaders/cube.frag";
@@ -86,9 +86,11 @@ const render = (state: CanvasState): CanvasState => {
   cube.draw();
 
   // Draw cube outside
-  gl.cullFace(gl.FRONT);
-  gl.uniform1f(alpha, opacity);
-  cube.draw();
+  if (opacity) {
+    gl.cullFace(gl.FRONT);
+    gl.uniform1f(alpha, opacity);
+    cube.draw();
+  }
 
   // Return state
   return {

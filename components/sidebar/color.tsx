@@ -1,5 +1,5 @@
 import { InputHTMLAttributes } from "react";
-import { toHex, toRGBString, BLACK, RGB, RGBFormat } from "../../helpers/color";
+import { toHex, toRGBString, BLACK, RGB, RGBFormat } from "../../lib/color";
 
 import { Checkbox } from "./checkbox";
 

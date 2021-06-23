@@ -35,7 +35,7 @@ export const Subsection = ({ title, defaultOpen = false, children }: SubsectionP
 
   // Return subsection component
   return (
-    <li className="pl-2 py-1">
+    <li className="py-1">
       {/* Header */}
       <header className="hover:text-blueGray-700 mb-1">
         <button
@@ -52,7 +52,7 @@ export const Subsection = ({ title, defaultOpen = false, children }: SubsectionP
       </header>
 
       {/* Body */}
-      {open && <ul>{children}</ul>}
+      {open && <ul className="pl-2">{children}</ul>}
     </li>
   );
 };

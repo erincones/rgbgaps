@@ -65,6 +65,10 @@ export const Toolbar = ({ state, dispatch }: Props): JSX.Element => {
         <Button title="Show grid" onClick={undefined}>
           <FontAwesomeIcon icon="border-none" fixedWidth />
         </Button>
+
+        <Button title="Show diagonal" onClick={undefined}>
+          <FontAwesomeIcon icon="expand-alt" fixedWidth />
+        </Button>
       </div>
 
       <Separator />
@@ -74,7 +78,7 @@ export const Toolbar = ({ state, dispatch }: Props): JSX.Element => {
           <FontAwesomeIcon icon="bullseye" fixedWidth />
         </Button>
 
-        <Button title="Show nearest" onClick={undefined}>
+        <Button title="Hightlight nearest distance" onClick={undefined}>
           <FontAwesomeIcon icon="route" fixedWidth />
         </Button>
       </div>

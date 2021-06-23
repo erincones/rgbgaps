@@ -2,7 +2,7 @@ import { vec3 } from "gl-matrix";
 
 import { GLSLShader, GLSLProgram, GLSLCamera, GLSLCube } from "../lib/glsl";
 
-import { hexToRGBA, WHITE, RGBA } from "../helpers/color";
+import { toRGB, toHex, WHITE, RGB } from "../helpers/color";
 
 import CUBE_VERT from "../shaders/cube.vert";
 import CUBE_FRAG from "../shaders/cube.frag";
@@ -18,7 +18,8 @@ export interface CanvasState {
   readonly camera: GLSLCamera;
   readonly cube: GLSLCube;
 
-  readonly background: RGBA;
+  readonly background: RGB;
+  readonly opacity: number;
 
   readonly errors: ReadonlyArray<string>;
 }
@@ -29,11 +30,15 @@ export type CanvasAction = {
   readonly container: HTMLDivElement;
   readonly canvas: HTMLCanvasElement;
   readonly background?: string;
+  readonly opacity?: number;
 } | {
   readonly type: `RESIZE`;
 } | {
   readonly type: `SET_BACKGROUND`;
   readonly background: string;
+} | {
+  readonly type: `SET_OPACITY`;
+  readonly opacity: number;
 } | {
   readonly type: `RESET_CAMERA`
 } | {
@@ -65,16 +70,24 @@ export type CanvasAction = {
  * @returns Next state
  */
 const render = (state: CanvasState): CanvasState => {
-  const { gl, program, camera, cube } = state;
+  const { gl, program, camera, cube, opacity } = state;
 
   // Reset context
   gl.clear(gl.COLOR_BUFFER_BIT);
 
-  // Set uniforms
+  // Bind camera
   program.use();
   camera.bind(gl, program);
 
-  // Draw cube
+  // Draw cube inside
+  const alpha = program.getLocation(`u_alpha`);
+  gl.cullFace(gl.BACK);
+  gl.uniform1f(alpha, 1);
+  cube.draw();
+
+  // Draw cube outside
+  gl.cullFace(gl.FRONT);
+  gl.uniform1f(alpha, opacity);
   cube.draw();
 
   // Return state
@@ -86,6 +99,7 @@ const render = (state: CanvasState): CanvasState => {
     camera,
     cube,
     background: state.background,
+    opacity,
     errors: state.errors
   };
 };
@@ -100,7 +114,7 @@ const render = (state: CanvasState): CanvasState => {
  * @param background Background color
  * @returns Next state
  */
-const initialize = (state: CanvasState, container: HTMLDivElement, canvas: HTMLCanvasElement, background?: string): CanvasState => {
+const initialize = (state: CanvasState, container: HTMLDivElement, canvas: HTMLCanvasElement, background = toHex(initialCanvas.background), opacity = initialCanvas.opacity): CanvasState => {
   // Error handler function
   const errors: string[] = [];
   const onerror = (error: string) => { errors.push(error); };
@@ -109,7 +123,8 @@ const initialize = (state: CanvasState, container: HTMLDivElement, canvas: HTMLC
   const gl = canvas.getContext(`webgl2`, { alpha: false }) as WebGL2RenderingContext;
 
   gl.enable(gl.CULL_FACE);
-  gl.cullFace(gl.FRONT);
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
   // Resize viewport
   gl.viewport(0, 0, container.offsetWidth, container.offsetHeight);
@@ -117,8 +132,8 @@ const initialize = (state: CanvasState, container: HTMLDivElement, canvas: HTMLC
   canvas.height = container.offsetHeight;
 
   // Background color
-  const bg = (background && hexToRGBA(background)) || state.background;
-  gl.clearColor(bg[0], bg[1], bg[2], bg[3]);
+  const bg = toRGB(background) || state.background;
+  gl.clearColor(bg[0], bg[1], bg[2], 1);
 
   // Image program
   const vert = new GLSLShader(gl, gl.VERTEX_SHADER, CUBE_VERT, onerror);
@@ -133,7 +148,7 @@ const initialize = (state: CanvasState, container: HTMLDivElement, canvas: HTMLC
   const { camera } = state;
   camera.resolution = { width: container.offsetWidth, height: container.offsetHeight };
   camera.position = [ 0, 0, -7 ];
-  camera.rotate([ -200, -200 ], [ 0, 0, 0 ]);
+  camera.rotate([ -150, -100 ], [ 0, 0, 0 ]);
 
   camera.defaultView = {
     position: camera.position,
@@ -152,7 +167,8 @@ const initialize = (state: CanvasState, container: HTMLDivElement, canvas: HTMLC
     program,
     camera,
     cube,
-    background: (background && hexToRGBA(background)) || state.background,
+    background: (background && toRGB(background)) || state.background,
+    opacity,
     errors
   });
 };
@@ -190,20 +206,11 @@ const setBackground = (state: CanvasState, bg: string): CanvasState => {
   const { gl } = state;
 
   // Parse and update background color
-  const background = hexToRGBA(bg) || WHITE;
+  const background = toRGB(bg) || WHITE;
 
-  gl.clearColor(background[0], background[1], background[2], background[3]);
+  gl.clearColor(background[0], background[1], background[2], 1);
 
-  return render({
-    container: state.container,
-    canvas: state.canvas,
-    gl: state.gl,
-    program: state.program,
-    camera: state.camera,
-    cube: state.cube,
-    background,
-    errors: state.errors
-  });
+  return render({ ...state, background });
 };
 
 
@@ -232,6 +239,7 @@ export const initialCanvas: CanvasState = {
   camera: new GLSLCamera(),
   cube: null as never,
   background: WHITE,
+  opacity: 0.65,
   errors: []
 };
 
@@ -248,10 +256,11 @@ export const canvasReducer = (state: CanvasState, action: CanvasAction): CanvasS
 
 
   switch (action.type) {
-    case `INITIALIZE`: return initialize(state, action.container, action.canvas, action.background);
+    case `INITIALIZE`: return initialize(state, action.container, action.canvas, action.background, action.opacity);
     case `RESIZE`: return resize(state);
 
     case `SET_BACKGROUND`: return setBackground(state, action.background);
+    case `SET_OPACITY`: return render({ ...state, opacity: Math.max(0, Math.min(1, action.opacity)) });
 
 
     case `RESET_CAMERA`:

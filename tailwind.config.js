@@ -1,4 +1,5 @@
 const colors = require(`tailwindcss/colors`);
+const forms = require(`@tailwindcss/forms`);
 
 module.exports = {
   purge: {
@@ -22,7 +23,13 @@ module.exports = {
       }
     }
   },
-  variants: {},
-  plugins: [],
+  variants: {
+    extend: {
+      borderWidth: [ `disabled` ]
+    }
+  },
+  plugins: [
+    forms
+  ],
   corePlugins: {}
 };

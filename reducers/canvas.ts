@@ -200,10 +200,21 @@ const render = (state: CanvasState): CanvasState => {
     camera.bind(gl, programGrid);
     grid.bind();
 
+    const axis = programGrid.getLocation(`u_axis`);
+
     gl.uniform1f(programGrid.getLocation(`u_rgb`), colorGrid === `rgb` ? 1 : 0);
     gl.uniform1f(programGrid.getLocation(`u_alpha`), alphaGrid);
     gl.uniform1f(programGrid.getLocation(`u_gap`), gapGrid);
-    grid.draw();
+
+    gl.uniform1i(axis, 0);
+    grid.drawX();
+
+
+    gl.uniform1i(axis, 1);
+    grid.drawY();
+
+    gl.uniform1i(axis, 2);
+    grid.drawZ();
   }
 
   // Draw axis

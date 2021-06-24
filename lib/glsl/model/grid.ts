@@ -79,25 +79,20 @@ export class GLSLGrid extends GLSLObject<WebGL2RenderingContext> {
   /** Grid size */
   public set size(size: number) {
     const step = Math.trunc(size) / 128;
-    const data: number[] = [];
+    const data: number[][] = [ [], [], [] ];
     this._size = size;
 
     if (step > 0) {
       for (let i = -1; i <= 1; i += step) {
         for (let j = -1; j <= 1; j += step) {
-          data.push(
-            -1, i, j,
-            1, i, j,
-            i, -1, j,
-            i, 1, j,
-            i, j, -1,
-            i, j, 1
-          );
+          data[0].push(-1, i, j, 1, i, j);
+          data[1].push(i, -1, j, i, 1, j);
+          data[2].push(i, j, -1, i, j, 1);
         }
       }
     }
 
-    this._data = new Float32Array(data);
+    this._data = new Float32Array(data.flat());
 
     if (this._status) {
       this.gl.bindVertexArray(this._vao);
@@ -114,10 +109,33 @@ export class GLSLGrid extends GLSLObject<WebGL2RenderingContext> {
   }
 
   /**
-   * Draw grid elements.
+   * Draw grid array.
    */
   public draw(): void {
     this.gl.drawArrays(this.gl.LINES, 0, this._data.length / 3);
+  }
+
+  /**
+   * Draw grid x lines array.
+   */
+  public drawX(): void {
+    this.gl.drawArrays(this.gl.LINES, 0, this._data.length / 9);
+  }
+
+  /**
+   * Draw grid y lines array.
+   */
+  public drawY(): void {
+    const size = this._data.length / 9;
+    this.gl.drawArrays(this.gl.LINES, size, size);
+  }
+
+  /**
+   * Draw grid z lines array.
+   */
+  public drawZ(): void {
+    const size = this._data.length / 9;
+    this.gl.drawArrays(this.gl.LINES, size * 2, size);
   }
 
   /**

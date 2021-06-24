@@ -11,6 +11,9 @@ export const BLACK: RGB = [ 0, 0, 0 ];
 /** White */
 export const WHITE: RGB = [ 1, 1, 1 ];
 
+/** Gray */
+export const GRAY: RGB = [ 0.5, 0.5, 0.5 ];
+
 /** Red */
 export const RED: RGB = [ 1, 0, 0 ];
 
@@ -83,4 +86,29 @@ export const toRGBString = (rgb: RGB, format: RGBFormat = `rgb`): string => {
     case `arith`: return toRGBArithmetic(rgb);
     case `pct`:   return toRGBPercentage(rgb);
   }
+};
+
+
+/**
+ * Get a random RGB color.
+ *
+ * @returns Random RGB
+ */
+export const randRGB = (): RGB => {
+  return [ Math.random(), Math.random(), Math.random() ];
+};
+
+/**
+ * Get the distance between two colors.
+ *
+ * @param p First color
+ * @param q Second color
+ * @returns Distance between the given colors
+ */
+export const distanceRGB = (p: RGB, q: RGB): number => {
+  const r = p[0] - q[0];
+  const g = p[1] - q[1];
+  const b = p[2] - q[2];
+
+  return Math.sqrt(r * r + g * g + b * b);
 };

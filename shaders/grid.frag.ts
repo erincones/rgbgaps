@@ -1,7 +1,6 @@
 export default `#version 300 es
 precision highp float;
 
-uniform vec3 u_color;
 uniform float u_rgb;
 uniform float u_alpha;
 uniform float u_gap;

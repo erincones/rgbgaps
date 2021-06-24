@@ -255,23 +255,21 @@ const render = (state: CanvasState): CanvasState => {
     cube.drawDiagonal();
   }
 
-  // Draw points and distances
-  programPoints.use();
-  camera.bind(gl, programPoints);
-  points.bind();
-
-  gl.uniform1f(programPoints.getLocation(`u_rgb`), colorPoints === `rgb` ? 1 : 0);
-  gl.uniform1f(programPoints.getLocation(`u_alpha`), alphaPoints);
-  points.drawPoints();
-
   // Draw distances
   programDistances.use();
   camera.bind(gl, programDistances);
   points.bind();
 
-  gl.uniform1f(programDistances.getLocation(`u_rgb`), colorDistances === `rgb` ? 1 : 0);
   gl.uniform1f(programDistances.getLocation(`u_alpha`), alphaDistances);
-  points.drawDistances();
+  points.drawDistances(programDistances, colorDistances === `rgb` ? 1 : 0);
+
+  // Draw points and distances
+  programPoints.use();
+  camera.bind(gl, programPoints);
+
+  gl.uniform1f(programPoints.getLocation(`u_rgb`), colorPoints === `rgb` ? 1 : 0);
+  gl.uniform1f(programPoints.getLocation(`u_alpha`), alphaPoints);
+  points.drawPoints(programPoints, cube);
 
 
   // Return state

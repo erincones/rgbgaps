@@ -9,3 +9,10 @@ type WebGLShaderType = WebGL2RenderingContext["VERTEX_SHADER"] | WebGL2Rendering
 
 /** Error handler function */
 type ErrorHandler = (error: string) => unknown;
+
+
+/** GLSL model */
+interface GLSLModel {
+  readonly bind: () => void;
+  readonly draw: () => void;
+}

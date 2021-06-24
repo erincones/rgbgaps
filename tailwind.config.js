@@ -17,6 +17,9 @@ module.exports = {
   theme: {
     colors,
     extend: {
+      spacing: {
+        "88": `22rem`
+      },
       cursor: {
         grab: `grab`,
         grabbing: `grabbing`

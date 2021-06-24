@@ -48,7 +48,6 @@ export class GLSLGrid extends GLSLObject<WebGL2RenderingContext> {
         gl.bindBuffer(gl.ARRAY_BUFFER, this._vbo);
 
         gl.enableVertexAttribArray(0);
-        gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 12, 0);
 
         this.size = this._size;
       }
@@ -96,7 +95,7 @@ export class GLSLGrid extends GLSLObject<WebGL2RenderingContext> {
 
     if (this._status) {
       this.gl.bindVertexArray(this._vao);
-      this.gl.bufferData(this.gl.ARRAY_BUFFER, this._data, this.gl.DYNAMIC_DRAW);
+      this.gl.bufferData(this.gl.ARRAY_BUFFER, this._data, this.gl.STREAM_DRAW);
       this.gl.vertexAttribPointer(0, 3, this.gl.FLOAT, false, 12, 0);
     }
   }

@@ -58,6 +58,7 @@ export interface CanvasState {
   readonly drawGrid: boolean;
   readonly colorGrid: DRAWING_COLOR;
   readonly alphaGrid: number;
+  readonly gapGrid: number;
 
   readonly points: GLSLPoints;
   readonly colorPoints: DRAWING_COLOR;
@@ -103,7 +104,7 @@ export type CanvasAction = {
 } | {
   readonly type: `SET_COLOR`;
   readonly model: `AXIS` | `GRID` | `DIAG` | `POINTS` | `DISTS`;
-  readonly status: DRAWING_COLOR;
+  readonly mode: DRAWING_COLOR;
 } | {
   readonly type: `SET_ALPHA`;
   readonly model: `IN` | `OUT` | `AXIS` | `GRID` | `DIAG` | `POINTS` | `DISTS`;
@@ -115,6 +116,12 @@ export type CanvasAction = {
   readonly type: `SET_HIGHTLIGHT`;
   readonly model: `NEAREST` | `NEAREST_DIST`;
   readonly status: boolean;
+} | {
+  readonly type: `SET_GRID_SIZE`;
+  readonly size: number;
+} | {
+  readonly type: `SET_GRID_GAP`;
+  readonly gap: number;
 } | {
   readonly type: `CLOSE_ERRORS`;
 } | {
@@ -153,6 +160,7 @@ const render = (state: CanvasState): CanvasState => {
     drawGrid,
     colorGrid,
     alphaGrid,
+    gapGrid,
     points,
     colorPoints,
     alphaPoints,
@@ -186,6 +194,18 @@ const render = (state: CanvasState): CanvasState => {
     }
   }
 
+  // Draw grid
+  if (drawGrid && alphaGrid) {
+    programGrid.use();
+    camera.bind(gl, programGrid);
+    grid.bind();
+
+    gl.uniform1f(programGrid.getLocation(`u_rgb`), colorGrid === `rgb` ? 1 : 0);
+    gl.uniform1f(programGrid.getLocation(`u_alpha`), alphaGrid);
+    gl.uniform1f(programGrid.getLocation(`u_gap`), gapGrid);
+    grid.draw();
+  }
+
   // Draw axis
   if (drawAxis && alphaAxis) {
     programAxis.use();
@@ -213,25 +233,14 @@ const render = (state: CanvasState): CanvasState => {
     }
   }
 
-  // Draw grid
-  if (drawGrid && alphaGrid) {
-    programGrid.use();
-    camera.bind(gl, programGrid);
-    grid.bind();
-
-    gl.uniform1f(programGrid.getLocation(`u_alpha`), alphaGrid);
-    gl.uniform1f(programGrid.getLocation(`u_rgb`), colorGrid === `rgb` ? 1 : 0);
-    grid.draw();
-  }
-
   // Draw diagonal
   if (drawDiagonal && alphaDiagonal) {
     programDiagonal.use();
     camera.bind(gl, programDiagonal);
     cube.bind();
 
-    gl.uniform1f(programDiagonal.getLocation(`u_alpha`), alphaDiagonal);
     gl.uniform1f(programDiagonal.getLocation(`u_rgb`), colorDiagonal === `rgb` ? 1 : 0);
+    gl.uniform1f(programDiagonal.getLocation(`u_alpha`), alphaDiagonal);
     cube.drawDiagonal();
   }
 
@@ -240,8 +249,8 @@ const render = (state: CanvasState): CanvasState => {
   camera.bind(gl, programPoints);
   points.bind();
 
-  gl.uniform1f(programPoints.getLocation(`u_alpha`), alphaPoints);
   gl.uniform1f(programPoints.getLocation(`u_rgb`), colorPoints === `rgb` ? 1 : 0);
+  gl.uniform1f(programPoints.getLocation(`u_alpha`), alphaPoints);
   points.drawPoints();
 
   // Draw distances
@@ -249,8 +258,8 @@ const render = (state: CanvasState): CanvasState => {
   camera.bind(gl, programDistances);
   points.bind();
 
-  gl.uniform1f(programDistances.getLocation(`u_alpha`), alphaDistances);
   gl.uniform1f(programDistances.getLocation(`u_rgb`), colorDistances === `rgb` ? 1 : 0);
+  gl.uniform1f(programDistances.getLocation(`u_alpha`), alphaDistances);
   points.drawDistances();
 
 
@@ -282,6 +291,7 @@ const render = (state: CanvasState): CanvasState => {
     drawGrid,
     colorGrid,
     alphaGrid,
+    gapGrid,
     points,
     colorPoints,
     alphaPoints,
@@ -492,6 +502,7 @@ export const initialCanvas: CanvasState = {
   drawGrid: false,
   colorGrid: `black`,
   alphaGrid: 0.5,
+  gapGrid: 8,
   points: null as never,
   colorPoints: `rgb`,
   alphaPoints: 0.9,
@@ -563,11 +574,11 @@ export const canvasReducer = (state: CanvasState, action: CanvasAction): CanvasS
     }
 
     case `SET_COLOR`: switch (action.model) {
-      case `AXIS`:   return render({ ...state, colorAxis: action.status });
-      case `GRID`:   return render({ ...state, colorGrid: action.status });
-      case `DIAG`:   return render({ ...state, colorDiagonal: action.status });
-      case `POINTS`: return render({ ...state, colorPoints: action.status });
-      case `DISTS`:  return render({ ...state, colorDistances: action.status });
+      case `AXIS`:   return render({ ...state, colorAxis: action.mode });
+      case `GRID`:   return render({ ...state, colorGrid: action.mode });
+      case `DIAG`:   return render({ ...state, colorDiagonal: action.mode });
+      case `POINTS`: return render({ ...state, colorPoints: action.mode });
+      case `DISTS`:  return render({ ...state, colorDistances: action.mode });
       default: return state;
     }
 
@@ -578,6 +589,12 @@ export const canvasReducer = (state: CanvasState, action: CanvasAction): CanvasS
       case `NEAREST_DIST`:
       default: return state;
     }
+
+    case `SET_GRID_SIZE`:
+      state.grid.size = action.size;
+      return render(state);
+
+    case `SET_GRID_GAP`: return render({ ...state, gapGrid: action.gap });
 
     case `CLOSE_ERRORS`: return { ...state, errors: [] };
     case `CLEAN_UP`: return cleanUp(state);

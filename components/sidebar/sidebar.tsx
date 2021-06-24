@@ -91,6 +91,72 @@ export const Sidebar = ({ state, dispatch }: Props): JSX.Element => {
             <Checkbox id="grid" name="grid" label="Grid" checked={state.drawGrid} onChange={e => { dispatch({ type: `SET_DRAW`, model: `GRID`, status: e.target.checked }); }} />
           </div>
         </li>
+        <hr className="mt-1" />
+        <Subsection title="Grid">
+          <li>
+            <Range
+              id="grid-size"
+              name="grid-size"
+              label="Size:"
+              value={state.grid?.size}
+              span={state.grid?.size}
+              min="16"
+              max="256"
+              onChange={e => { dispatch({ type: `SET_GRID_SIZE`, size: Number(e.target.value) }); }}
+            />
+          </li>
+          <li>
+            <Range
+              id="grid-gap"
+              name="grid-gap"
+              label="Dash length:"
+              value={state.gapGrid}
+              span={state.gapGrid}
+              min="0"
+              max="256"
+              onChange={e => { dispatch({ type: `SET_GRID_GAP`, gap: Number(e.target.value) }); }}
+            />
+          </li>
+        </Subsection>
+        <hr />
+        <Subsection title="Line color">
+          <li className="grid grid-cols-3">
+            <span>
+              Axis:
+            </span>
+            <Radio id="axis-rgb" name="color-axis" label="RGB" checked={state.colorAxis === `rgb`} onChange={e => { dispatch({ type: `SET_COLOR`, model: `AXIS`, mode: e.target.checked ? `rgb` : `black` }); }}/>
+            <Radio id="axis-black" name="color-axis" label="Black" checked={state.colorAxis === `black`} onChange={e => { dispatch({ type: `SET_COLOR`, model: `AXIS`, mode: e.target.checked ? `black` : `rgb` }); }}/>
+          </li>
+          <li className="grid grid-cols-3">
+            <span>
+              Grid:
+            </span>
+            <Radio id="grid-rgb" name="color-grid" label="RGB" checked={state.colorGrid === `rgb`} onChange={e => { dispatch({ type: `SET_COLOR`, model: `GRID`, mode: e.target.checked ? `rgb` : `black` }); }}/>
+            <Radio id="grid-black" name="color-grid" label="Black" checked={state.colorGrid === `black`} onChange={e => { dispatch({ type: `SET_COLOR`, model: `GRID`, mode: e.target.checked ? `black` : `rgb` }); }}/>
+          </li>
+          <li className="grid grid-cols-3">
+            <span>
+              Diagonal:
+            </span>
+            <Radio id="diag-rgb" name="color-diag" label="RGB" checked={state.colorDiagonal === `rgb`} onChange={e => { dispatch({ type: `SET_COLOR`, model: `DIAG`, mode: e.target.checked ? `rgb` : `black` }); }}/>
+            <Radio id="diag-black" name="color-diag" label="Black" checked={state.colorDiagonal === `black`} onChange={e => { dispatch({ type: `SET_COLOR`, model: `DIAG`, mode: e.target.checked ? `black` : `rgb` }); }}/>
+          </li>
+          <li className="grid grid-cols-3">
+            <span>
+              Points:
+            </span>
+            <Radio id="points-rgb" name="color-points" label="RGB" checked={state.colorPoints === `rgb`} onChange={e => { dispatch({ type: `SET_COLOR`, model: `POINTS`, mode: e.target.checked ? `rgb` : `black` }); }}/>
+            <Radio id="points-black" name="color-points" label="Black" checked={state.colorPoints === `black`} onChange={e => { dispatch({ type: `SET_COLOR`, model: `POINTS`, mode: e.target.checked ? `black` : `rgb` }); }}/>
+          </li>
+          <li className="grid grid-cols-3">
+            <span>
+              Distances:
+            </span>
+            <Radio id="dists-rgb" name="color-dists" label="RGB" checked={state.colorDistances === `rgb`} onChange={e => { dispatch({ type: `SET_COLOR`, model: `DISTS`, mode: e.target.checked ? `rgb` : `black` }); }}/>
+            <Radio id="dists-black" name="color-dists" label="Black" checked={state.colorDistances === `black`} onChange={e => { dispatch({ type: `SET_COLOR`, model: `DISTS`, mode: e.target.checked ? `black` : `rgb` }); }}/>
+          </li>
+        </Subsection>
+        <hr />
         <Subsection title="Opacity">
           <li>
             <Range
@@ -217,6 +283,7 @@ export const Sidebar = ({ state, dispatch }: Props): JSX.Element => {
         <li>
           <Color id="nearest" name="nearest" format={format} label="Nearest:" disabled />
         </li>
+        <hr className="mt-1" />
         <Subsection title="Palette" defaultOpen>
           <li>
             <ul className="flex space-x-2">

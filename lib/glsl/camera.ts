@@ -58,7 +58,7 @@ export class GLSLCamera {
     near: 0.01,
     far: 10.0,
     fov: toRad(30),
-    fovMin: toRad(10),
+    fovMin: toRad(5),
     fovMax: toRad(160)
   };
 

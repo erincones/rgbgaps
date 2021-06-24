@@ -23,6 +23,7 @@ interface Props {
  */
 export const Toolbar = ({ state, dispatch }: Props): JSX.Element => {
   const { camera } = state;
+  const persp = camera.projection === `perspective`;
 
   // Return toolbar
   return (
@@ -54,19 +55,26 @@ export const Toolbar = ({ state, dispatch }: Props): JSX.Element => {
       <Separator />
 
       <div className="space-x-1">
-        <Button title="Toggle projection" active={camera.projection === `perspective`} onClick={() => { dispatch({ type: `TOGGLE_PROJECTION` }); }}>
+        <Button title="Toggle projection" active={persp} onClick={() => { dispatch({ type: `SET_PROJECTION`, projection: persp ? `orthogonal` : `perspective` }); }}>
+          <span className="fa-layers fa-fw">
+            <FontAwesomeIcon icon="cube" fixedWidth transform="right-2 up-5 shrink-2" />
+            <FontAwesomeIcon icon="video" fixedWidth transform="left-2 down-6 shrink-2" />
+          </span>
+        </Button>
+
+        <Button title="Draw cube" active={state.drawCube} onClick={() => { dispatch({ type: `SET_DRAW`, model: `CUBE`, status: !state.drawCube }); }}>
           <FontAwesomeIcon icon="cube" fixedWidth />
         </Button>
 
-        <Button title="Show axis" onClick={undefined}>
+        <Button title="Draw axis" active={state.drawAxis} onClick={() => { dispatch({ type: `SET_DRAW`, model: `AXIS`, status: !state.drawAxis }); }}>
           <FontAwesomeIcon icon="ruler-combined" fixedWidth />
         </Button>
 
-        <Button title="Show grid" onClick={undefined}>
+        <Button title="Draw grid" active={state.drawGrid} onClick={() => { dispatch({ type: `SET_DRAW`, model: `GRID`, status: !state.drawGrid }); }}>
           <FontAwesomeIcon icon="border-none" fixedWidth />
         </Button>
 
-        <Button title="Show diagonal" onClick={undefined}>
+        <Button title="Draw diagonal" active={state.drawDiagonal} onClick={() => { dispatch({ type: `SET_DRAW`, model: `DIAG`, status: !state.drawDiagonal }); }}>
           <FontAwesomeIcon icon="expand-alt" fixedWidth />
         </Button>
       </div>

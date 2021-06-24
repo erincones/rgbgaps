@@ -9,6 +9,7 @@ import { Subsection } from "./subsection";
 import { Button } from "./button";
 import { Radio } from "./radio";
 import { Checkbox } from "./checkbox";
+import { Range } from "./range";
 import { Vector } from "./vector";
 import { Color } from "./color";
 
@@ -31,6 +32,7 @@ export const Sidebar = ({ state, dispatch }: Props): JSX.Element => {
   const [ format, setFormat ] = useState<RGBFormat>(`hex`);
 
   const { camera } = state;
+  const persp = camera.projection === `perspective`;
 
 
   // Return sidebar
@@ -38,15 +40,17 @@ export const Sidebar = ({ state, dispatch }: Props): JSX.Element => {
     <ul className="flex-shrink-0 bg-blueGray-100 text-blueGray-800 border-b-8 md:border-b-0 md:border-r-8 border-blueGray-600 overflow-auto md:w-80 h-1/3 md:h-auto">
       <Section title="Camera">
         <li>
-          <div>
-            <label htmlFor="fov" className="inline-block w-1/4">
-              FOV:
-            </label>
-            <span className="font-mono select-text tabular-nums ml-2">
-              {camera.fov.toFixed(2)}°
-            </span>
-          </div>
-          <input id="fov" name="fov" type="range" value={camera.fov} min={camera.fovMin} max={camera.fovMax} step="0.01" onChange={e => { dispatch({ type: `SCALE`, fov: Number(e.target.value) }); }} className="w-full" />
+          <Range
+            id="fov"
+            name="fov"
+            label="FOV:"
+            value={camera.fov}
+            span={`${camera.fov.toFixed(2).padStart(6)}%`}
+            min={camera.fovMin}
+            max={camera.fovMax}
+            step="0.01"
+            onChange={e => { dispatch({ type: `SCALE`, fov: Number(e.target.value) }); }}
+          />
         </li>
         <li>
           <span className="inline-block w-1/4">
@@ -62,9 +66,9 @@ export const Sidebar = ({ state, dispatch }: Props): JSX.Element => {
         </li>
         <li>
           Projection:
-          <div className="pl-2">
-            <Radio id="persp" name="projection" label="Perspective" checked={camera.projection === `perspective`} onChange={() => { dispatch({ type: `TOGGLE_PROJECTION` }); }} />
-            <Radio id="ortho" name="projection" label="Orthogonal" checked={camera.projection === `orthogonal`} onChange={() => { dispatch({ type: `TOGGLE_PROJECTION` }); }} />
+          <div className="grid grid-cols-2 pl-2">
+            <Radio id="persp" name="projection" label="Perspective" checked={persp} onChange={e => { dispatch({ type: `SET_PROJECTION`, projection: e.target.checked ? `perspective` : `orthogonal` }); }} />
+            <Radio id="ortho" name="projection" label="Orthogonal" checked={!persp} onChange={e => { dispatch({ type: `SET_PROJECTION`, projection: e.target.checked ? `orthogonal` : `perspective` }); }} />
           </div>
         </li>
         <li className="text-right">
@@ -74,26 +78,112 @@ export const Sidebar = ({ state, dispatch }: Props): JSX.Element => {
         </li>
       </Section>
 
-      <Section title="Cube">
+      <Section title="Render">
         <li>
-          <div>
-            <label htmlFor="opacity" className="inline-block w-1/4">
-              Opacity:
-            </label>
-            <span className="font-mono select-text tabular-nums ml-2">
-              {(state.opacity * 100).toFixed(0)}%
-            </span>
-          </div>
-          <input name="opacity" type="range" value={state.opacity} min={0} max={1} step="0.01" onChange={e => { dispatch({ type: `SET_OPACITY`, opacity: Number(e.target.value) }); }} className="w-full" />
+          <Color id="background" name="background" format={format} label="Background:" value={state.background} onChange={e => { dispatch({ type: `SET_BACKGROUND`, background: e.target.value }); }} />
         </li>
         <li>
-          Guides:
+          Draw:
           <div className="grid grid-rows-2 grid-cols-2 pl-2">
-            <Checkbox id="axis" name="axis" label="Axis" />
-            <Checkbox id="grid" name="grid" label="Grid" />
-            <Checkbox id="diagonal" name="diagonal" label="Diagonal" />
+            <Checkbox id="cube" name="axis" label="Cube" checked={state.drawCube} onChange={e => { dispatch({ type: `SET_DRAW`, model: `CUBE`, status: e.target.checked }); }} />
+            <Checkbox id="axis" name="axis" label="Axis" checked={state.drawAxis} onChange={e => { dispatch({ type: `SET_DRAW`, model: `AXIS`, status: e.target.checked }); }} />
+            <Checkbox id="diag" name="diag" label="Diagonal" checked={state.drawDiagonal} onChange={e => { dispatch({ type: `SET_DRAW`, model: `DIAG`, status: e.target.checked }); }} />
+            <Checkbox id="grid" name="grid" label="Grid" checked={state.drawGrid} onChange={e => { dispatch({ type: `SET_DRAW`, model: `GRID`, status: e.target.checked }); }} />
           </div>
         </li>
+        <Subsection title="Opacity">
+          <li>
+            <Range
+              id="alpha-in"
+              name="alpha-in"
+              label="Cube inside:"
+              value={state.alphaIn}
+              span={`${(state.alphaIn * 100).toFixed(0).padStart(3)}%`}
+              min="0"
+              max="1"
+              step="0.01"
+              onChange={e => { dispatch({ type: `SET_ALPHA`, model: `IN`, opacity: Number(e.target.value) }); }}
+            />
+          </li>
+          <li>
+            <Range
+              id="alpha-out"
+              name="alpha-out"
+              label="Cube outside:"
+              value={state.alphaOut}
+              span={`${(state.alphaOut * 100).toFixed(0).padStart(3)}%`}
+              min="0"
+              max="1"
+              step="0.01"
+              onChange={e => { dispatch({ type: `SET_ALPHA`, model: `OUT`, opacity: Number(e.target.value) }); }}
+            />
+          </li>
+          <li>
+            <Range
+              id="alpha-axis"
+              name="alpha-axis"
+              label="Axis:"
+              value={state.alphaAxis}
+              span={`${(state.alphaAxis * 100).toFixed(0).padStart(3)}%`}
+              min="0"
+              max="1"
+              step="0.01"
+              onChange={e => { dispatch({ type: `SET_ALPHA`, model: `AXIS`, opacity: Number(e.target.value) }); }}
+            />
+          </li>
+          <li>
+            <Range
+              id="alpha-grid"
+              name="alpha-grid"
+              label="Grid:"
+              value={state.alphaGrid}
+              span={`${(state.alphaGrid * 100).toFixed(0).padStart(3)}%`}
+              min="0"
+              max="1"
+              step="0.01"
+              onChange={e => { dispatch({ type: `SET_ALPHA`, model: `GRID`, opacity: Number(e.target.value) }); }}
+            />
+          </li>
+          <li>
+            <Range
+              id="alpha-diag"
+              name="alpha-diag"
+              label="Diagonal:"
+              value={state.alphaDiagonal}
+              span={`${(state.alphaDiagonal * 100).toFixed(0).padStart(3)}%`}
+              min="0"
+              max="1"
+              step="0.01"
+              onChange={e => { dispatch({ type: `SET_ALPHA`, model: `DIAG`, opacity: Number(e.target.value) }); }}
+            />
+          </li>
+          <li>
+            <Range
+              id="alpha-points"
+              name="alpha-points"
+              label="Points:"
+              value={state.alphaPoints}
+              span={`${(state.alphaPoints * 100).toFixed(0).padStart(3)}%`}
+              min="0"
+              max="1"
+              step="0.01"
+              onChange={e => { dispatch({ type: `SET_ALPHA`, model: `POINTS`, opacity: Number(e.target.value) }); }}
+            />
+          </li>
+          <li>
+            <Range
+              id="alpha-dists"
+              name="alpha-dists"
+              label="Distances:"
+              value={state.alphaDistances}
+              span={`${(state.alphaDistances * 100).toFixed(0).padStart(3)}%`}
+              min="0"
+              max="1"
+              step="0.01"
+              onChange={e => { dispatch({ type: `SET_ALPHA`, model: `DISTS`, opacity: Number(e.target.value) }); }}
+            />
+          </li>
+        </Subsection>
       </Section>
 
       <Section title="Colors" defaultOpen>

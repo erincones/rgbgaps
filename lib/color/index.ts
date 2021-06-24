@@ -11,6 +11,15 @@ export const BLACK: RGB = [ 0, 0, 0 ];
 /** White */
 export const WHITE: RGB = [ 1, 1, 1 ];
 
+/** Red */
+export const RED: RGB = [ 1, 0, 0 ];
+
+/** Green */
+export const GREEN: RGB = [ 0, 1, 0 ];
+
+/** Blue */
+export const BLUE: RGB = [ 0, 0, 1 ];
+
 
 /** Hexadecimal regex */
 const HEX = /^#([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})$/;

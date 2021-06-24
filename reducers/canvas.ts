@@ -1,11 +1,27 @@
+import colors from "tailwindcss/colors";
 import { vec3 } from "gl-matrix";
 
-import { GLSLShader, GLSLProgram, GLSLCamera, GLSLCube } from "../lib/glsl";
+import { GLSLShader, GLSLProgram, GLSLCamera } from "../lib/glsl";
+import { GLSLCube, GLSLAxis, GLSLGrid, GLSLPoints } from "../lib/glsl/model";
 
-import { toRGB, toHex, WHITE, RGB } from "../lib/color";
+import { toRGB, BLACK, WHITE, RED, GREEN, BLUE, RGB } from "../lib/color";
 
 import CUBE_VERT from "../shaders/cube.vert";
 import CUBE_FRAG from "../shaders/cube.frag";
+import AXIS_VERT from "../shaders/axis.vert";
+import AXIS_FRAG from "../shaders/axis.frag";
+import GRID_VERT from "../shaders/grid.vert";
+import GRID_FRAG from "../shaders/grid.frag";
+import DIAG_VERT from "../shaders/diagonal.vert";
+import DIAG_FRAG from "../shaders/diagonal.frag";
+import POINTS_VERT from "../shaders/points.vert";
+import POINTS_FRAG from "../shaders/points.frag";
+import DISTS_VERT from "../shaders/distances.vert";
+import DISTS_FRAG from "../shaders/distances.frag";
+
+
+/** Line color */
+type DRAWING_COLOR = `black` | `rgb`;
 
 
 /** Canvas state */
@@ -14,12 +30,41 @@ export interface CanvasState {
   readonly canvas: HTMLCanvasElement;
   readonly gl: WebGL2RenderingContext;
 
-  readonly program: GLSLProgram;
-  readonly camera: GLSLCamera;
-  readonly cube: GLSLCube;
-
   readonly background: RGB;
-  readonly opacity: number;
+  readonly programCube: GLSLProgram;
+  readonly programAxis: GLSLProgram;
+  readonly programGrid: GLSLProgram;
+  readonly programDiagonal: GLSLProgram;
+  readonly programPoints: GLSLProgram;
+  readonly programDistances: GLSLProgram;
+
+  readonly camera: GLSLCamera;
+
+  readonly cube: GLSLCube;
+  readonly drawCube: boolean;
+  readonly alphaIn: number;
+  readonly alphaOut: number;
+
+  readonly drawDiagonal: boolean;
+  readonly colorDiagonal: DRAWING_COLOR;
+  readonly alphaDiagonal: number;
+
+  readonly axis: GLSLAxis;
+  readonly drawAxis: boolean;
+  readonly colorAxis: DRAWING_COLOR;
+  readonly alphaAxis: number;
+
+  readonly grid: GLSLGrid;
+  readonly drawGrid: boolean;
+  readonly colorGrid: DRAWING_COLOR;
+  readonly alphaGrid: number;
+
+  readonly points: GLSLPoints;
+  readonly colorPoints: DRAWING_COLOR;
+  readonly alphaPoints: number;
+
+  readonly colorDistances: DRAWING_COLOR;
+  readonly alphaDistances: number;
 
   readonly errors: ReadonlyArray<string>;
 }
@@ -29,20 +74,16 @@ export type CanvasAction = {
   readonly type: `INITIALIZE`;
   readonly container: HTMLDivElement;
   readonly canvas: HTMLCanvasElement;
-  readonly background?: string;
-  readonly opacity?: number;
-} | {
-  readonly type: `RESIZE`;
 } | {
   readonly type: `SET_BACKGROUND`;
   readonly background: string;
 } | {
-  readonly type: `SET_OPACITY`;
-  readonly opacity: number;
+  readonly type: `RESIZE`;
 } | {
-  readonly type: `RESET_CAMERA`
+  readonly type: `RESET_CAMERA`;
 } | {
-  readonly type: `TOGGLE_PROJECTION`
+  readonly type: `SET_PROJECTION`;
+  readonly projection: `perspective` | `orthogonal`;
 } | {
   readonly type: `ROTATE`;
   readonly dx: number;
@@ -56,52 +97,196 @@ export type CanvasAction = {
 } | {
   readonly type: `ZOOM_OUT`;
 } | {
+  readonly type: `SET_DRAW`;
+  readonly model: `CUBE` | `AXIS` | `GRID` | `DIAG`;
+  readonly status: boolean;
+} | {
+  readonly type: `SET_COLOR`;
+  readonly model: `AXIS` | `GRID` | `DIAG` | `POINTS` | `DISTS`;
+  readonly status: DRAWING_COLOR;
+} | {
+  readonly type: `SET_ALPHA`;
+  readonly model: `IN` | `OUT` | `AXIS` | `GRID` | `DIAG` | `POINTS` | `DISTS`;
+  readonly opacity: number;
+} | {
+  readonly type: `SET_TARGET`;
+  readonly color: string;
+} | {
+  readonly type: `SET_HIGHTLIGHT`;
+  readonly model: `NEAREST` | `NEAREST_DIST`;
+  readonly status: boolean;
+} | {
   readonly type: `CLOSE_ERRORS`;
 } | {
   readonly type: `CLEAN_UP`;
 };
 
 
-
 /**
- * Render the image.
+ * Render the cube.
  *
  * @param state Current state
  * @returns Next state
  */
 const render = (state: CanvasState): CanvasState => {
-  const { gl, program, camera, cube, opacity } = state;
+  const {
+    gl,
+    programCube,
+    programAxis,
+    programGrid,
+    programDiagonal,
+    programPoints,
+    programDistances,
+    camera,
+    cube,
+    drawCube,
+    alphaIn,
+    alphaOut,
+    drawDiagonal,
+    colorDiagonal,
+    alphaDiagonal,
+    axis,
+    drawAxis,
+    colorAxis,
+    alphaAxis,
+    grid,
+    drawGrid,
+    colorGrid,
+    alphaGrid,
+    points,
+    colorPoints,
+    alphaPoints,
+    colorDistances,
+    alphaDistances
+  } = state;
 
   // Reset context
   gl.clear(gl.COLOR_BUFFER_BIT);
 
-  // Bind camera
-  program.use();
-  camera.bind(gl, program);
+  // Draw cube
+  if (drawCube) {
+    programCube.use();
+    camera.bind(gl, programCube);
+    cube.bind();
 
-  // Draw cube inside
-  const alpha = program.getLocation(`u_alpha`);
-  gl.cullFace(gl.BACK);
-  gl.uniform1f(alpha, 1);
-  cube.draw();
+    const alphaCube = programCube.getLocation(`u_alpha`);
 
-  // Draw cube outside
-  if (opacity) {
-    gl.cullFace(gl.FRONT);
-    gl.uniform1f(alpha, opacity);
-    cube.draw();
+    // Inside
+    if (alphaIn) {
+      gl.cullFace(gl.BACK);
+      gl.uniform1f(alphaCube, alphaIn);
+      cube.drawCube();
+    }
+
+    // Outside
+    if (alphaOut) {
+      gl.cullFace(gl.FRONT);
+      gl.uniform1f(alphaCube, alphaOut);
+      cube.drawCube();
+    }
   }
+
+  // Draw axis
+  if (drawAxis && alphaAxis) {
+    programAxis.use();
+    camera.bind(gl, programAxis);
+    axis.bind();
+
+    const color = programAxis.getLocation(`u_color`);
+
+    gl.uniform1f(programAxis.getLocation(`u_alpha`), alphaAxis);
+
+    if (colorAxis === `rgb`) {
+      gl.uniform3fv(color, RED);
+      axis.drawX();
+
+      gl.uniform3fv(color, GREEN);
+      axis.drawY();
+
+      gl.uniform3fv(color, BLUE);
+      axis.drawZ();
+    }
+    else {
+      gl.uniform3fv(color, BLACK);
+
+      axis.draw();
+    }
+  }
+
+  // Draw grid
+  if (drawGrid && alphaGrid) {
+    programGrid.use();
+    camera.bind(gl, programGrid);
+    grid.bind();
+
+    gl.uniform1f(programGrid.getLocation(`u_alpha`), alphaGrid);
+    gl.uniform1f(programGrid.getLocation(`u_rgb`), colorGrid === `rgb` ? 1 : 0);
+    grid.draw();
+  }
+
+  // Draw diagonal
+  if (drawDiagonal && alphaDiagonal) {
+    programDiagonal.use();
+    camera.bind(gl, programDiagonal);
+    cube.bind();
+
+    gl.uniform1f(programDiagonal.getLocation(`u_alpha`), alphaDiagonal);
+    gl.uniform1f(programDiagonal.getLocation(`u_rgb`), colorDiagonal === `rgb` ? 1 : 0);
+    cube.drawDiagonal();
+  }
+
+  // Draw points and distances
+  programPoints.use();
+  camera.bind(gl, programPoints);
+  points.bind();
+
+  gl.uniform1f(programPoints.getLocation(`u_alpha`), alphaPoints);
+  gl.uniform1f(programPoints.getLocation(`u_rgb`), colorPoints === `rgb` ? 1 : 0);
+  points.drawPoints();
+
+  // Draw distances
+  programDistances.use();
+  camera.bind(gl, programDistances);
+  points.bind();
+
+  gl.uniform1f(programDistances.getLocation(`u_alpha`), alphaDistances);
+  gl.uniform1f(programDistances.getLocation(`u_rgb`), colorDistances === `rgb` ? 1 : 0);
+  points.drawDistances();
+
 
   // Return state
   return {
     container: state.container,
     canvas: state.canvas,
     gl,
-    program,
+    background: state.background,
+    programCube,
+    programAxis,
+    programGrid,
+    programDiagonal,
+    programPoints,
+    programDistances,
     camera,
     cube,
-    background: state.background,
-    opacity,
+    drawCube,
+    alphaOut,
+    alphaIn,
+    drawDiagonal,
+    colorDiagonal,
+    alphaDiagonal,
+    axis,
+    drawAxis,
+    colorAxis,
+    alphaAxis,
+    grid,
+    drawGrid,
+    colorGrid,
+    alphaGrid,
+    points,
+    colorPoints,
+    alphaPoints,
+    colorDistances,
+    alphaDistances,
     errors: state.errors
   };
 };
@@ -113,38 +298,78 @@ const render = (state: CanvasState): CanvasState => {
  * @param state Current state
  * @param container Canvas container
  * @param canvas Canvas element
- * @param background Background color
  * @returns Next state
  */
-const initialize = (state: CanvasState, container: HTMLDivElement, canvas: HTMLCanvasElement, background = toHex(initialCanvas.background), opacity = initialCanvas.opacity): CanvasState => {
+const initialize = (state: CanvasState, container: HTMLDivElement, canvas: HTMLCanvasElement): CanvasState => {
   // Error handler function
   const errors: string[] = [];
   const onerror = (error: string) => { errors.push(error); };
 
   // Initialize and setup context
   const gl = canvas.getContext(`webgl2`, { alpha: false }) as WebGL2RenderingContext;
+  const bg = initialCanvas.background;
 
   gl.enable(gl.CULL_FACE);
   gl.enable(gl.BLEND);
   gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+  gl.clearColor(bg[0], bg[1], bg[2], 1);
 
   // Resize viewport
   gl.viewport(0, 0, container.offsetWidth, container.offsetHeight);
   canvas.width = container.offsetWidth;
   canvas.height = container.offsetHeight;
 
-  // Background color
-  const bg = toRGB(background) || state.background;
-  gl.clearColor(bg[0], bg[1], bg[2], 1);
+  // GLSL Programs
+  const programCube = new GLSLProgram(
+    gl,
+    new GLSLShader(gl, gl.VERTEX_SHADER, CUBE_VERT, onerror),
+    new GLSLShader(gl, gl.FRAGMENT_SHADER, CUBE_FRAG, onerror),
+    onerror
+  );
+  const programAxis = new GLSLProgram(
+    gl,
+    new GLSLShader(gl, gl.VERTEX_SHADER, AXIS_VERT, onerror),
+    new GLSLShader(gl, gl.FRAGMENT_SHADER, AXIS_FRAG, onerror),
+    onerror
+  );
+  const programGrid = new GLSLProgram(
+    gl,
+    new GLSLShader(gl, gl.VERTEX_SHADER, GRID_VERT, onerror),
+    new GLSLShader(gl, gl.FRAGMENT_SHADER, GRID_FRAG, onerror),
+    onerror
+  );
+  const programDiagonal = new GLSLProgram(
+    gl,
+    new GLSLShader(gl, gl.VERTEX_SHADER, DIAG_VERT, onerror),
+    new GLSLShader(gl, gl.FRAGMENT_SHADER, DIAG_FRAG, onerror),
+    onerror
+  );
+  const programPoints = new GLSLProgram(
+    gl,
+    new GLSLShader(gl, gl.VERTEX_SHADER, POINTS_VERT, onerror),
+    new GLSLShader(gl, gl.FRAGMENT_SHADER, POINTS_FRAG, onerror),
+    onerror
+  );
+  const programDistances = new GLSLProgram(
+    gl,
+    new GLSLShader(gl, gl.VERTEX_SHADER, DISTS_VERT, onerror),
+    new GLSLShader(gl, gl.FRAGMENT_SHADER, DISTS_FRAG, onerror),
+    onerror
+  );
 
-  // Image program
-  const vert = new GLSLShader(gl, gl.VERTEX_SHADER, CUBE_VERT, onerror);
-  const frag = new GLSLShader(gl, gl.FRAGMENT_SHADER, CUBE_FRAG, onerror);
-  const program = new GLSLProgram(gl, vert, frag, onerror);
-  program.deleteShaders();
+  // Delete shaders
+  programCube.deleteShaders();
+  programAxis.deleteShaders();
+  programGrid.deleteShaders();
+  programDiagonal.deleteShaders();
+  programPoints.deleteShaders();
+  programDistances.deleteShaders();
 
-  // Cube
+  // Cube and axis
   const cube = new GLSLCube(gl, onerror);
+  const axis = new GLSLAxis(gl, onerror);
+  const grid = new GLSLGrid(gl, onerror);
+  const points = new GLSLPoints(gl, onerror);
 
   // Update camera resolution
   const { camera } = state;
@@ -163,14 +388,21 @@ const initialize = (state: CanvasState, container: HTMLDivElement, canvas: HTMLC
 
   // Render
   return render({
+    ...initialCanvas,
     container,
     canvas,
     gl,
-    program,
+    programCube,
+    programAxis,
+    programGrid,
+    programDiagonal,
+    programPoints,
+    programDistances,
     camera,
     cube,
-    background: (background && toRGB(background)) || state.background,
-    opacity,
+    axis,
+    grid,
+    points,
     errors
   });
 };
@@ -223,7 +455,7 @@ const setBackground = (state: CanvasState, bg: string): CanvasState => {
  * @returns Next state
  */
 const cleanUp = (state: CanvasState): CanvasState => {
-  const { program, cube } = state;
+  const { programCube: program, cube } = state;
 
   program.delete();
   cube.delete();
@@ -237,11 +469,34 @@ export const initialCanvas: CanvasState = {
   container: null as never,
   canvas: null as never,
   gl: null as never,
-  program: null as never,
+  background: toRGB(colors.blueGray[`50`]) || WHITE,
+  programCube: null as never,
+  programAxis: null as never,
+  programGrid: null as never,
+  programDiagonal: null as never,
+  programPoints: null as never,
+  programDistances: null as never,
   camera: new GLSLCamera(),
   cube: null as never,
-  background: WHITE,
-  opacity: 0.65,
+  drawCube: true,
+  alphaIn: 1,
+  alphaOut: 0.65,
+  drawDiagonal: false,
+  colorDiagonal: `rgb`,
+  alphaDiagonal: 0.6,
+  axis: null as never,
+  drawAxis: true,
+  colorAxis: `rgb`,
+  alphaAxis: 0.7,
+  grid: null as never,
+  drawGrid: false,
+  colorGrid: `black`,
+  alphaGrid: 0.5,
+  points: null as never,
+  colorPoints: `rgb`,
+  alphaPoints: 0.9,
+  colorDistances: `black`,
+  alphaDistances: 0.8,
   errors: []
 };
 
@@ -258,19 +513,18 @@ export const canvasReducer = (state: CanvasState, action: CanvasAction): CanvasS
 
 
   switch (action.type) {
-    case `INITIALIZE`: return initialize(state, action.container, action.canvas, action.background, action.opacity);
-    case `RESIZE`: return resize(state);
+    case `INITIALIZE`: return initialize(state, action.container, action.canvas);
 
     case `SET_BACKGROUND`: return setBackground(state, action.background);
-    case `SET_OPACITY`: return render({ ...state, opacity: Math.max(0, Math.min(1, action.opacity)) });
 
+    case `RESIZE`: return resize(state);
 
     case `RESET_CAMERA`:
       camera.reset();
       return render(state);
 
-    case `TOGGLE_PROJECTION`:
-      camera.projection = camera.projection === `perspective` ? `orthogonal` : `perspective`;
+    case `SET_PROJECTION`:
+      camera.projection = action.projection;
       return render(state);
 
     case `ROTATE`:
@@ -289,8 +543,45 @@ export const canvasReducer = (state: CanvasState, action: CanvasAction): CanvasS
       camera.fov = action.fov;
       return render(state);
 
+    case `SET_DRAW`: switch (action.model) {
+      case `CUBE`: return render({ ...state, drawCube: action.status });
+      case `AXIS`: return render({ ...state, drawAxis: action.status });
+      case `GRID`: return render({ ...state, drawGrid: action.status });
+      case `DIAG`: return render({ ...state, drawDiagonal: action.status });
+      default: return state;
+    }
+
+    case `SET_ALPHA`: switch (action.model) {
+      case `IN`:     return render({ ...state, alphaIn: Math.max(0, Math.min(1, action.opacity)) });
+      case `OUT`:    return render({ ...state, alphaOut: Math.max(0, Math.min(1, action.opacity)) });
+      case `AXIS`:   return render({ ...state, alphaAxis: Math.max(0, Math.min(1, action.opacity)) });
+      case `GRID`:   return render({ ...state, alphaGrid: Math.max(0, Math.min(1, action.opacity)) });
+      case `DIAG`:   return render({ ...state, alphaDiagonal: Math.max(0, Math.min(1, action.opacity)) });
+      case `POINTS`: return render({ ...state, alphaPoints: Math.max(0, Math.min(1, action.opacity)) });
+      case `DISTS`:  return render({ ...state, alphaDistances: Math.max(0, Math.min(1, action.opacity)) });
+      default: return state;
+    }
+
+    case `SET_COLOR`: switch (action.model) {
+      case `AXIS`:   return render({ ...state, colorAxis: action.status });
+      case `GRID`:   return render({ ...state, colorGrid: action.status });
+      case `DIAG`:   return render({ ...state, colorDiagonal: action.status });
+      case `POINTS`: return render({ ...state, colorPoints: action.status });
+      case `DISTS`:  return render({ ...state, colorDistances: action.status });
+      default: return state;
+    }
+
+    case `SET_TARGET`: return state;
+
+    case `SET_HIGHTLIGHT`: switch(action.model) {
+      case `NEAREST`:
+      case `NEAREST_DIST`:
+      default: return state;
+    }
 
     case `CLOSE_ERRORS`: return { ...state, errors: [] };
     case `CLEAN_UP`: return cleanUp(state);
+
+    default: return state;
   }
 };

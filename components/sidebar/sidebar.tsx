@@ -1,7 +1,7 @@
 import { useState, Dispatch } from "react";
 
 import { CanvasState, CanvasAction } from "../../reducers/canvas";
-import { RGBFormat, toHex } from "../../lib/color";
+import { RGBFormat, toHex, BLACK } from "../../lib/color";
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Section } from "./section";
@@ -9,6 +9,7 @@ import { Subsection } from "./subsection";
 import { Button } from "./button";
 import { Radio } from "./radio";
 import { Checkbox } from "./checkbox";
+import { Toggler } from "./toggler";
 import { Range } from "./range";
 import { Vector } from "./vector";
 import { Color } from "./color";
@@ -35,6 +36,154 @@ export const Sidebar = ({ state, dispatch }: Props): JSX.Element => {
   const persp = camera.projection === `perspective`;
   const nearest = points?.nearest;
   const farthest = points?.farthest;
+
+  const pointCount = points?.colors.length + 1;
+  const distanceCount = pointCount - 1;
+  let drawingPoints = points?.drawTarget ? 1 : 0;
+  let hightlightedPoints = points?.hightlightTargetPoint ? 1 : 0;
+  let drawingDistances = 0;
+  let hightlightedDistances = 0;
+
+  // Point and distance mode handlers
+  let handleNearestPointModeClick = () => { return; };
+  let handleNearestDistanceModeClick = () => { return; };
+  let handleFarthestPointModeClick = () => { return; };
+  let handleFarthestDistanceModeClick = () => { return; };
+
+
+  const handleTargetPointModeClick = () => {
+    if (points?.hightlightTargetPoint) {
+      dispatch({ type: `SET_DRAW`, model: `POINT`, index: `target`, status: false });
+      dispatch({ type: `SET_HIGHTLIGHT`, model: `POINT`, index: `target`, status: false });
+    }
+    else if (!points?.drawTarget) {
+      dispatch({ type: `SET_DRAW`, model: `POINT`, index: `target`, status: true });
+    }
+    else {
+      dispatch({ type: `SET_HIGHTLIGHT`, model: `POINT`, index: `target`, status: true });
+    }
+  };
+
+  // Color palette
+  const palette = points?.colors.map(({ rgb, distance, drawPoint, hightlightPoint, drawDistance, hightlightDistance }, i) => {
+    const id = `${toHex(rgb)}-${i}`;
+    const note =
+      i === points.nearestIndex ? `Nearest` :
+      i === points.farthestIndex ? `Farthest` :
+      undefined;
+
+    if (drawPoint) drawingPoints++;
+    if (hightlightPoint) hightlightedPoints++;
+    if (drawDistance) drawingDistances++;
+    if (hightlightDistance) hightlightedDistances++;
+
+    const handlePointModeClick = () => {
+      if (hightlightPoint) {
+        dispatch({ type: `SET_DRAW`, model: `POINT`, index: i, status: false });
+        dispatch({ type: `SET_HIGHTLIGHT`, model: `POINT`, index: i, status: false });
+      }
+      else if (!drawPoint) {
+        dispatch({ type: `SET_DRAW`, model: `POINT`, index: i, status: true });
+      }
+      else {
+        dispatch({ type: `SET_HIGHTLIGHT`, model: `POINT`, index: i, status: true });
+      }
+    };
+
+    const handleDistanceModeClick = () => {
+      if (hightlightDistance) {
+        dispatch({ type: `SET_DRAW`, model: `DIST`, index: i, status: false });
+        dispatch({ type: `SET_HIGHTLIGHT`, model: `DIST`, index: i, status: false });
+      }
+      else if (!drawDistance) {
+        dispatch({ type: `SET_DRAW`, model: `DIST`, index: i, status: true });
+      }
+      else {
+        dispatch({ type: `SET_HIGHTLIGHT`, model: `DIST`, index: i, status: true });
+      }
+    };
+
+    if (i === points.nearestIndex) {
+      handleNearestPointModeClick = handlePointModeClick;
+      handleNearestDistanceModeClick = handleDistanceModeClick;
+    }
+
+    if (i === points.farthestIndex) {
+      handleFarthestPointModeClick = handlePointModeClick;
+      handleFarthestDistanceModeClick = handleDistanceModeClick;
+    }
+
+    return (
+      <li key={`${pointCount}-${i}`} className="mb-1">
+        <Color
+          id={id}
+          name={id}
+          format={format}
+          value={rgb}
+          distance={distance * 100}
+          note={note}
+          drawPoint={drawPoint}
+          drawDistance={drawDistance}
+          hightlightPoint={hightlightPoint}
+          hightlightDistance={hightlightDistance}
+          onChange={e => { dispatch({ type: `SET_COLOR`, index: i, color: e.target.value }); }}
+          onPointModeClick={handlePointModeClick}
+          onDistanceModeClick={handleDistanceModeClick}
+        />
+      </li>
+    );
+  });
+
+
+  const pointModeIcon =
+    !drawingPoints && !hightlightedPoints ? undefined :
+    (drawingPoints === pointCount) && (hightlightedPoints === pointCount) ? `check-double` :
+    (drawingPoints === pointCount) || (hightlightedPoints === pointCount) ? `check` :
+    `question`;
+
+  const distanceModeIcon =
+    !drawingDistances && !hightlightedDistances ? undefined :
+    (drawingDistances === distanceCount) && (hightlightedDistances === distanceCount) ? `check-double` :
+    (drawingDistances === distanceCount) || (hightlightedDistances === distanceCount) ? `check` :
+    `question`;
+
+
+  // Points mode handler
+  const handlePointsModeClick = () => {
+    if ((drawingPoints === pointCount) && (hightlightedPoints === pointCount)) {
+      dispatch({ type: `SET_DRAW`, model: `POINT`, status: false });
+      dispatch({ type: `SET_HIGHTLIGHT`, model: `POINT`, status: false });
+    }
+    else if ((!drawingPoints && !hightlightedPoints) || (hightlightedPoints === pointCount)) {
+      dispatch({ type: `SET_DRAW`, model: `POINT`, status: true });
+    }
+    else if (drawingPoints === pointCount) {
+      dispatch({ type: `SET_HIGHTLIGHT`, model: `POINT`, status: true });
+    }
+    else {
+      dispatch({ type: `SET_DRAW`, model: `POINT`, status: true });
+      dispatch({ type: `SET_HIGHTLIGHT`, model: `POINT`, status: true });
+    }
+  };
+
+  // Distances mode hangler
+  const handleDistancesModeClick = () => {
+    if ((drawingDistances === distanceCount) && (hightlightedDistances === distanceCount)) {
+      dispatch({ type: `SET_DRAW`, model: `DIST`, status: false });
+      dispatch({ type: `SET_HIGHTLIGHT`, model: `DIST`, status: false });
+    }
+    else if ((!drawingDistances && !hightlightedDistances) || (hightlightedDistances === distanceCount)) {
+      dispatch({ type: `SET_DRAW`, model: `DIST`, status: true });
+    }
+    else if (drawingDistances === distanceCount) {
+      dispatch({ type: `SET_HIGHTLIGHT`, model: `DIST`, status: true });
+    }
+    else {
+      dispatch({ type: `SET_DRAW`, model: `DIST`, status: true });
+      dispatch({ type: `SET_HIGHTLIGHT`, model: `DIST`, status: true });
+    }
+  };
+
 
   // Return sidebar
   return (
@@ -305,24 +454,18 @@ export const Sidebar = ({ state, dispatch }: Props): JSX.Element => {
         </li>
         <li>
           <div className="flex justify-end space-x-1.5">
-            <label htmlFor="all-hightlighted" title="Points mode" className="flex flex-col items-center space-y-0.5">
-              <FontAwesomeIcon icon="bullseye" fixedWidth />
-              <Checkbox
-                id="all-hightlighted"
-                name="all-hightlighted"
-                checked={points?.hightlightedAllPoints()}
-                onChange={e => { dispatch({ type: `SET_HIGHTLIGHT`, model: `POINT`, status: e.target.checked }); }}
-              />
-            </label>
-            <label htmlFor="all-distanced" title="Distances mode" className="flex flex-col items-center space-y-0.5">
-              <FontAwesomeIcon icon="route" fixedWidth />
-              <Checkbox
-                id="all-distanced"
-                name="all-distanced"
-                checked={points?.hightlightedAllDistances()}
-                onChange={e => { dispatch({ type: `SET_HIGHTLIGHT`, model: `DIST`, status: e.target.checked }); }}
-              />
-            </label>
+            <div title="Points mode" className="flex flex-col items-center space-y-0.5">
+              <label htmlFor="points-mode" >
+                <FontAwesomeIcon icon="bullseye" fixedWidth />
+              </label>
+              <Toggler id="points-mode" name="points-mode" icon={pointModeIcon} onClick={handlePointsModeClick} />
+            </div>
+            <div title="Distances mode" className="flex flex-col items-center space-y-0.5">
+              <label htmlFor="distances-mode" >
+                <FontAwesomeIcon icon="route" fixedWidth />
+              </label>
+              <Toggler id="distances-mode" name="distances-mode" icon={distanceModeIcon} onClick={handleDistancesModeClick} />
+            </div>
           </div>
         </li>
         <li>
@@ -331,10 +474,11 @@ export const Sidebar = ({ state, dispatch }: Props): JSX.Element => {
             name="target"
             format={format}
             label="Target:"
-            value={points?.target}
-            hightlighted={points?.hightlightTargetPoint}
+            value={points?.target || BLACK}
+            drawPoint={points?.drawTarget}
+            hightlightPoint={points?.hightlightTargetPoint}
             onChange={e => { dispatch({ type: `SET_COLOR`, index: `target`, color: e.target.value }); }}
-            onHightlightedChange={e => { dispatch({ type: `SET_HIGHTLIGHT`, model: `POINT`, index: `target`, status: e.target.checked }); }}
+            onPointModeClick={handleTargetPointModeClick}
           />
         </li>
         <li>
@@ -343,13 +487,15 @@ export const Sidebar = ({ state, dispatch }: Props): JSX.Element => {
             name="nearest"
             format={format}
             label="Nearest:"
-            value={nearest?.rgb}
+            value={nearest?.rgb || BLACK}
             distance={nearest?.distance * 100}
-            hightlighted={nearest?.hightlightPoint}
-            distanced={nearest?.hightlightDistance}
+            drawPoint={nearest?.drawPoint}
+            drawDistance={nearest?.drawDistance}
+            hightlightPoint={nearest?.hightlightPoint}
+            hightlightDistance={nearest?.hightlightDistance}
             disabled
-            onHightlightedChange={e => { dispatch({ type: `SET_HIGHTLIGHT`, model: `POINT`, index: points?.nearestIndex, status: e.target.checked }); }}
-            onDistancedChange={e => { dispatch({ type: `SET_HIGHTLIGHT`, model: `DIST`, index: points?.nearestIndex, status: e.target.checked }); }}
+            onPointModeClick={handleNearestPointModeClick}
+            onDistanceModeClick={handleNearestDistanceModeClick}
           />
         </li>
         <li>
@@ -358,13 +504,15 @@ export const Sidebar = ({ state, dispatch }: Props): JSX.Element => {
             name="farthest"
             format={format}
             label="Farthtest:"
-            value={farthest?.rgb}
+            value={farthest?.rgb || BLACK}
             distance={farthest?.distance * 100}
-            hightlighted={farthest?.hightlightPoint}
-            distanced={farthest?.hightlightDistance}
+            drawPoint={farthest?.drawPoint}
+            drawDistance={farthest?.drawDistance}
+            hightlightPoint={farthest?.hightlightPoint}
+            hightlightDistance={farthest?.hightlightDistance}
             disabled
-            onHightlightedChange={e => { dispatch({ type: `SET_HIGHTLIGHT`, model: `POINT`, index: points?.farthestIndex, status: e.target.checked }); }}
-            onDistancedChange={e => { dispatch({ type: `SET_HIGHTLIGHT`, model: `DIST`, index: points?.farthestIndex, status: e.target.checked }); }}
+            onPointModeClick={handleFarthestPointModeClick}
+            onDistanceModeClick={handleFarthestDistanceModeClick}
           />
         </li>
         <hr className="mt-1" />
@@ -374,31 +522,7 @@ export const Sidebar = ({ state, dispatch }: Props): JSX.Element => {
               Text editor
             </Button>
           </li>
-          {points?.colors.map(({ rgb, distance, hightlightPoint, hightlightDistance }, i) => {
-            const id = `${toHex(rgb)}-${i}`;
-            const note =
-              i === points.nearestIndex ? `Nearest` :
-              i === points.farthestIndex ? `Farthest` :
-              undefined;
-
-            return (
-              <li key={i} className="mb-1">
-                <Color
-                  id={id}
-                  name={id}
-                  format={format}
-                  value={rgb}
-                  distance={distance * 100}
-                  note={note}
-                  hightlighted={hightlightPoint}
-                  distanced={hightlightDistance}
-                  onChange={e => { dispatch({ type: `SET_COLOR`, index: i, color: e.target.value }); }}
-                  onHightlightedChange={e => { dispatch({ type: `SET_HIGHTLIGHT`, model: `POINT`, index: i, status: e.target.checked }); }}
-                  onDistancedChange={e => { dispatch({ type: `SET_HIGHTLIGHT`, model: `DIST`, index: i, status: e.target.checked }); }}
-                />
-              </li>
-            );
-          })}
+          {palette}
         </Subsection>
       </Section>
     </ul>

@@ -344,7 +344,7 @@ export class GLSLPoints extends GLSLObject<WebGL2RenderingContext> {
    *
    * @returns Whether all points are drawable
    */
-  public getDrawPoints(): boolean {
+  public drawingAllPoints(): boolean {
     return this.drawTarget && this._colors.every(({ drawPoint }) => drawPoint);
   }
 
@@ -530,8 +530,8 @@ export class GLSLPoints extends GLSLObject<WebGL2RenderingContext> {
     const color = getLocation(`u_color`);
     const position = getLocation(`u_position`);
 
-    this._colors.forEach(({ rgb, drawDistance, hightlightPoint }, i) => {
-      if (drawDistance) {
+    this._colors.forEach(({ rgb, drawPoint, hightlightPoint }, i) => {
+      if (drawPoint) {
         const near = i === this._nearest;
         const far = i === this._farthest;
 

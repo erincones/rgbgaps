@@ -25,8 +25,57 @@ export const Toolbar = ({ state, dispatch }: Props): JSX.Element => {
   const { camera, points } = state;
 
   const persp = camera.projection === `perspective`;
-  const hightlightedPoints = points?.hightlightedAllPoints();
-  const hightlightedDistances = points?.hightlightedAllDistances();
+
+  const pointCount = points?.colors.length + 1;
+  const distanceCount = pointCount - 1;
+  let drawingPoints = points?.drawTarget ? 1 : 0;
+  let hightlightedPoints = points?.hightlightTargetPoint ? 1 : 0;
+  let drawingDistances = 0;
+  let hightlightedDistances = 0;
+
+  points?.colors.forEach(({ drawPoint, drawDistance, hightlightPoint, hightlightDistance }) => {
+    if (drawPoint) drawingPoints++;
+    if (hightlightPoint) hightlightedPoints++;
+    if (drawDistance) drawingDistances++;
+    if (hightlightDistance) hightlightedDistances++;
+  });
+
+
+  // Points mode handler
+  const handlePointsModeClick = () => {
+    if ((drawingPoints === pointCount) && (hightlightedPoints === pointCount)) {
+      dispatch({ type: `SET_DRAW`, model: `POINT`, status: false });
+      dispatch({ type: `SET_HIGHTLIGHT`, model: `POINT`, status: false });
+    }
+    else if ((!drawingPoints && !hightlightedPoints) || (hightlightedPoints === pointCount)) {
+      dispatch({ type: `SET_DRAW`, model: `POINT`, status: true });
+    }
+    else if (drawingPoints === pointCount) {
+      dispatch({ type: `SET_HIGHTLIGHT`, model: `POINT`, status: true });
+    }
+    else {
+      dispatch({ type: `SET_DRAW`, model: `POINT`, status: true });
+      dispatch({ type: `SET_HIGHTLIGHT`, model: `POINT`, status: true });
+    }
+  };
+
+  // Distances mode hangler
+  const handleDistancesModeClick = () => {
+    if ((drawingDistances === distanceCount) && (hightlightedDistances === distanceCount)) {
+      dispatch({ type: `SET_DRAW`, model: `DIST`, status: false });
+      dispatch({ type: `SET_HIGHTLIGHT`, model: `DIST`, status: false });
+    }
+    else if ((!drawingDistances && !hightlightedDistances) || (hightlightedDistances === distanceCount)) {
+      dispatch({ type: `SET_DRAW`, model: `DIST`, status: true });
+    }
+    else if (drawingDistances === distanceCount) {
+      dispatch({ type: `SET_HIGHTLIGHT`, model: `DIST`, status: true });
+    }
+    else {
+      dispatch({ type: `SET_DRAW`, model: `DIST`, status: true });
+      dispatch({ type: `SET_HIGHTLIGHT`, model: `DIST`, status: true });
+    }
+  };
 
   // Return toolbar
   return (
@@ -78,11 +127,11 @@ export const Toolbar = ({ state, dispatch }: Props): JSX.Element => {
       <Separator />
 
       <div className="space-x-1">
-        <Button title="Toggle points mode" onClick={() => { dispatch({ type: `SET_HIGHTLIGHT`, model: `POINT`, status: !hightlightedPoints }); }}>
+        <Button title="Toggle points mode" onClick={handlePointsModeClick}>
           <FontAwesomeIcon icon="bullseye" fixedWidth />
         </Button>
 
-        <Button title="Toggle distances mode" onClick={() => { dispatch({ type: `SET_HIGHTLIGHT`, model: `DIST`, status: !hightlightedDistances }); }}>
+        <Button title="Toggle distances mode" onClick={handleDistancesModeClick}>
           <FontAwesomeIcon icon="route" fixedWidth />
         </Button>
       </div>

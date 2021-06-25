@@ -1,7 +1,8 @@
-import { InputHTMLAttributes } from "react";
+import { InputHTMLAttributes, ButtonHTMLAttributes } from "react";
+
 import { toHex, toRGBString, BLACK, RGB, RGBFormat } from "../../lib/color";
 
-import { Checkbox } from "./checkbox";
+import { Toggler } from "./toggler";
 
 
 /**
@@ -16,11 +17,13 @@ interface Props {
   readonly value?: RGB;
   readonly distance?: number;
   readonly note?: string;
-  readonly hightlighted?: InputHTMLAttributes<HTMLInputElement>["checked"];
-  readonly distanced?: InputHTMLAttributes<HTMLInputElement>["checked"];
+  readonly drawPoint?: boolean;
+  readonly drawDistance?: boolean;
+  readonly hightlightPoint?: boolean;
+  readonly hightlightDistance?: boolean;
   readonly onChange?: InputHTMLAttributes<HTMLInputElement>["onChange"];
-  readonly onHightlightedChange?: InputHTMLAttributes<HTMLInputElement>["onChange"];
-  readonly onDistancedChange?: InputHTMLAttributes<HTMLInputElement>["onChange"];
+  readonly onPointModeClick?: ButtonHTMLAttributes<HTMLButtonElement>["onClick"];
+  readonly onDistanceModeClick?: ButtonHTMLAttributes<HTMLButtonElement>["onClick"];
 }
 
 
@@ -29,7 +32,7 @@ interface Props {
  *
  * @param param0 Color properties
  */
-export const Color = ({ id, name, label, format = `hex`, disabled, value, distance, note, hightlighted, distanced, onChange, onHightlightedChange, onDistancedChange }: Props): JSX.Element => {
+export const Color = ({ id, name, label, format = `hex`, disabled, value, distance, note, drawPoint, drawDistance, hightlightPoint, hightlightDistance, onChange, onPointModeClick, onDistanceModeClick }: Props): JSX.Element => {
   // Return color
   return (
     <>
@@ -58,9 +61,23 @@ export const Color = ({ id, name, label, format = `hex`, disabled, value, distan
             {note && <strong>{note}</strong>}
           </div>
 
-          {onHightlightedChange && <Checkbox id={id && `${id}-hightlight`} name={name && `${name}-hightlight`} checked={hightlighted} onChange={onHightlightedChange} />}
-          {onDistancedChange && <Checkbox id={id && `${id}-distance`} name={name && `${name}-distance`} checked={distanced} onChange={onDistancedChange} />}
-          {onHightlightedChange && !onDistancedChange && <input type="checkbox" className="invisible" />}
+          {onPointModeClick && (
+            <Toggler
+              id={id && `${id}-point-mode`}
+              name={name && `${name}-point-mode`}
+              icon={hightlightPoint ? `check-double` : drawPoint ? `check` : undefined}
+              onClick={onPointModeClick}
+            />
+          )}
+          {onDistanceModeClick && (
+            <Toggler
+              id={id && `${id}-distance-mode`}
+              name={name && `${name}-distance-mode`}
+              icon={hightlightDistance ? `check-double` : drawDistance ? `check` : undefined}
+              onClick={onDistanceModeClick}
+            />
+          )}
+          {onPointModeClick && !onDistanceModeClick && <div className="invisible w-4" />}
         </div>
       </div>
     </>

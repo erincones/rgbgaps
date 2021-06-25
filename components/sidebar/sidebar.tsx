@@ -1,7 +1,7 @@
 import { useState, Dispatch } from "react";
 
 import { CanvasState, CanvasAction } from "../../reducers/canvas";
-import { RGBFormat, toHex, BLACK } from "../../lib/color";
+import { RGBFormat, toHex, randRGB, BLACK } from "../../lib/color";
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Section } from "./section";
@@ -517,9 +517,12 @@ export const Sidebar = ({ state, dispatch }: Props): JSX.Element => {
         </li>
         <hr className="mt-1" />
         <Subsection title="Palette" defaultOpen>
-          <li className="mb-1">
+          <li className="flex space-x-2 mb-1">
             <Button onClick={undefined}>
               Text editor
+            </Button>
+            <Button onClick={() => { dispatch({ type: `ADD_COLOR`, color: toHex(randRGB()) }); }}>
+              Add color
             </Button>
           </li>
           {palette}

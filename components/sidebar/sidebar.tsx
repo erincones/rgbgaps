@@ -129,6 +129,7 @@ export const Sidebar = ({ state, dispatch }: Props): JSX.Element => {
           onChange={e => { dispatch({ type: `SET_COLOR`, index: i, color: e.target.value }); }}
           onPointModeClick={handlePointModeClick}
           onDistanceModeClick={handleDistanceModeClick}
+          onRemoveClick={pointCount > 3 ? () => { dispatch({ type: `REMOVE_COLOR`, index: i }); } : undefined}
         />
       </li>
     );
@@ -453,14 +454,14 @@ export const Sidebar = ({ state, dispatch }: Props): JSX.Element => {
           </div>
         </li>
         <li>
-          <div className="flex justify-end space-x-1.5">
+          <div className="flex justify-end space-x-0.5">
             <div title="Points mode" className="flex flex-col items-center space-y-0.5">
               <label htmlFor="points-mode" >
                 <FontAwesomeIcon icon="bullseye" fixedWidth />
               </label>
               <Toggler id="points-mode" name="points-mode" icon={pointModeIcon} onClick={handlePointsModeClick} />
             </div>
-            <div title="Distances mode" className="flex flex-col items-center space-y-0.5">
+            <div title="Distances mode" className="flex flex-col items-end space-y-0.5">
               <label htmlFor="distances-mode" >
                 <FontAwesomeIcon icon="route" fixedWidth />
               </label>

@@ -2,6 +2,7 @@ import { InputHTMLAttributes, ButtonHTMLAttributes } from "react";
 
 import { toHex, toRGBString, BLACK, RGB, RGBFormat } from "../../lib/color";
 
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Toggler } from "./toggler";
 
 
@@ -24,6 +25,7 @@ interface Props {
   readonly onChange?: InputHTMLAttributes<HTMLInputElement>["onChange"];
   readonly onPointModeClick?: ButtonHTMLAttributes<HTMLButtonElement>["onClick"];
   readonly onDistanceModeClick?: ButtonHTMLAttributes<HTMLButtonElement>["onClick"];
+  readonly onRemoveClick?: ButtonHTMLAttributes<HTMLButtonElement>["onClick"];
 }
 
 
@@ -32,7 +34,7 @@ interface Props {
  *
  * @param param0 Color properties
  */
-export const Color = ({ id, name, label, format = `hex`, disabled, value, distance, note, drawPoint, drawDistance, hightlightPoint, hightlightDistance, onChange, onPointModeClick, onDistanceModeClick }: Props): JSX.Element => {
+export const Color = ({ id, name, label, format = `hex`, disabled, value, distance, note, drawPoint, drawDistance, hightlightPoint, hightlightDistance, onChange, onPointModeClick, onDistanceModeClick, onRemoveClick }: Props): JSX.Element => {
   // Return color
   return (
     <>
@@ -43,7 +45,7 @@ export const Color = ({ id, name, label, format = `hex`, disabled, value, distan
       )}
 
       <div className={(label !== undefined) ? `pl-2` : undefined}>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-1">
           <input id={id} name={name} type="color" disabled={disabled} readOnly={disabled} value={value ? toHex(value) : undefined} onChange={onChange} className="border disabled:border-0 border-blueGray-800 shadow focus:outline-none focus:ring w-4 h-4" />
           <div className="flex-grow text-xs leading-none">
             <span className="block flex-grow font-mono select-text whitespace-pre">
@@ -61,6 +63,11 @@ export const Color = ({ id, name, label, format = `hex`, disabled, value, distan
             {note && <strong>{note}</strong>}
           </div>
 
+          {onRemoveClick && (
+            <button type="button" title="Remove color" onClick={onRemoveClick} className="flex items-center justify-center bg-red-500 hover:bg-red-600 border border-blueGray-800 shadow focus:outline-none focus:ring focus:ring-red-500 focus:ring-opacity-50 w-4 h-4">
+              <FontAwesomeIcon icon="times" fixedWidth className="text-white text-xs" />
+            </button>
+          )}
           {onPointModeClick && (
             <Toggler
               id={id && `${id}-point-mode`}

@@ -101,40 +101,18 @@ export class GLSLPoints extends GLSLObject<WebGL2RenderingContext> {
         gl.enableVertexAttribArray(0);
 
 
-        let min = Number.POSITIVE_INFINITY;
-        let max = Number.NEGATIVE_INFINITY;
-
-        this._colors = [ ...Array(5) ].map((e, i) => {
+        this._colors = [ ...Array(5) ].map(() => {
           const rgb = randRGB();
-          const distance = distanceRGB(rgb, this._target);
-
-          if (distance < min) {
-            min = distance;
-            this._nearest = i;
-          }
-
-          if (distance > max) {
-            max = distance;
-            this._farthest = i;
-          }
 
           return {
             rgb,
-            distance,
+            distance: distanceRGB(rgb, this._target),
             drawPoint: true,
             drawDistance: true,
             hightlightPoint: false,
             hightlightDistance: false
           };
         });
-
-        const nearest = this._colors[this._nearest];
-        const farthest = this._colors[this._farthest];
-
-        nearest.hightlightPoint = true;
-        nearest.hightlightDistance = true;
-        farthest.hightlightPoint = true;
-        farthest.hightlightDistance = true;
 
         this.updateData();
       }
@@ -159,8 +137,8 @@ export class GLSLPoints extends GLSLObject<WebGL2RenderingContext> {
     const data: number[] = GLSLPoints.toSpace(this._target);
     const index: number[] = [];
 
-    const oldNearest = this._colors[this._nearest];
-    const oldFarthest = this._colors[this._farthest];
+    const oldNearest = this._colors[this._nearest] || { hightlightPoint: true, hightlightDistance: true };
+    const oldFarthest = this._colors[this._farthest] || { hightlightPoint: true, hightlightDistance: true };
 
     let min = Number.POSITIVE_INFINITY;
     let max = Number.NEGATIVE_INFINITY;
@@ -504,7 +482,7 @@ export class GLSLPoints extends GLSLObject<WebGL2RenderingContext> {
    */
   public removeColor(i: number): void {
     if (this._colors.length > 2) {
-      this._colors = this._colors.slice(i).concat(this._colors.slice(i + 1));
+      this._colors = this._colors.slice(0, i).concat(this._colors.slice(i + 1));
 
       this.updateData();
     }

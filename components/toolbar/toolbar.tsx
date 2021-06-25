@@ -41,7 +41,10 @@ export const Toolbar = ({ state, dispatch }: Props): JSX.Element => {
 
       <div className="space-x-1">
         <Button title="Text palette editor" onClick={undefined}>
-          <FontAwesomeIcon icon="palette" fixedWidth/>
+          <span className="fa-layers fa-fw">
+            <FontAwesomeIcon icon="palette" fixedWidth transform="left-1 up-3 shrink-1" />
+            <FontAwesomeIcon icon="font" fixedWidth transform="right-3 down-5 shrink-4" />
+          </span>
         </Button>
       </div>
 
@@ -75,11 +78,11 @@ export const Toolbar = ({ state, dispatch }: Props): JSX.Element => {
       <Separator />
 
       <div className="space-x-1">
-        <Button title="Highlight colors" onClick={() => { dispatch({ type: `SET_HIGHTLIGHT`, model: `POINT`, status: !hightlightedPoints }); }}>
+        <Button title="Toggle points mode" onClick={() => { dispatch({ type: `SET_HIGHTLIGHT`, model: `POINT`, status: !hightlightedPoints }); }}>
           <FontAwesomeIcon icon="bullseye" fixedWidth />
         </Button>
 
-        <Button title="Hightlight distances" onClick={() => { dispatch({ type: `SET_HIGHTLIGHT`, model: `DIST`, status: !hightlightedDistances }); }}>
+        <Button title="Toggle distances mode" onClick={() => { dispatch({ type: `SET_HIGHTLIGHT`, model: `DIST`, status: !hightlightedDistances }); }}>
           <FontAwesomeIcon icon="route" fixedWidth />
         </Button>
       </div>

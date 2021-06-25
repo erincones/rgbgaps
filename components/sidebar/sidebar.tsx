@@ -304,11 +304,8 @@ export const Sidebar = ({ state, dispatch }: Props): JSX.Element => {
           </div>
         </li>
         <li>
-          <div className="flex items-end space-x-1.5">
-            <span className="flex-grow">
-              Hightlight:
-            </span>
-            <label htmlFor="all-hightlighted" title="Colors" className="flex flex-col items-center space-y-0.5">
+          <div className="flex justify-end space-x-1.5">
+            <label htmlFor="all-hightlighted" title="Points mode" className="flex flex-col items-center space-y-0.5">
               <FontAwesomeIcon icon="bullseye" fixedWidth />
               <Checkbox
                 id="all-hightlighted"
@@ -317,7 +314,7 @@ export const Sidebar = ({ state, dispatch }: Props): JSX.Element => {
                 onChange={e => { dispatch({ type: `SET_HIGHTLIGHT`, model: `POINT`, status: e.target.checked }); }}
               />
             </label>
-            <label htmlFor="all-distanced" title="Distances" className="flex flex-col items-center space-y-0.5">
+            <label htmlFor="all-distanced" title="Distances mode" className="flex flex-col items-center space-y-0.5">
               <FontAwesomeIcon icon="route" fixedWidth />
               <Checkbox
                 id="all-distanced"
@@ -379,15 +376,20 @@ export const Sidebar = ({ state, dispatch }: Props): JSX.Element => {
           </li>
           {points?.colors.map(({ rgb, distance, hightlightPoint, hightlightDistance }, i) => {
             const id = `${toHex(rgb)}-${i}`;
+            const note =
+              i === points.nearestIndex ? `Nearest` :
+              i === points.farthestIndex ? `Farthest` :
+              undefined;
 
             return (
-              <li key={id} className="mb-1">
+              <li key={i} className="mb-1">
                 <Color
                   id={id}
                   name={id}
                   format={format}
                   value={rgb}
                   distance={distance * 100}
+                  note={note}
                   hightlighted={hightlightPoint}
                   distanced={hightlightDistance}
                   onChange={e => { dispatch({ type: `SET_COLOR`, index: i, color: e.target.value }); }}

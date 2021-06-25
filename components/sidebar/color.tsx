@@ -11,10 +11,11 @@ interface Props {
   readonly id?: InputHTMLAttributes<HTMLInputElement>["id"];
   readonly name?: InputHTMLAttributes<HTMLInputElement>["name"];
   readonly label?: string;
-  readonly distance?: number;
   readonly format?: RGBFormat;
   readonly disabled?: InputHTMLAttributes<HTMLInputElement>["disabled"];
   readonly value?: RGB;
+  readonly distance?: number;
+  readonly note?: string;
   readonly hightlighted?: InputHTMLAttributes<HTMLInputElement>["checked"];
   readonly distanced?: InputHTMLAttributes<HTMLInputElement>["checked"];
   readonly onChange?: InputHTMLAttributes<HTMLInputElement>["onChange"];
@@ -28,7 +29,7 @@ interface Props {
  *
  * @param param0 Color properties
  */
-export const Color = ({ id, name, label, distance, format = `hex`, disabled, value, hightlighted, distanced, onChange, onHightlightedChange, onDistancedChange }: Props): JSX.Element => {
+export const Color = ({ id, name, label, format = `hex`, disabled, value, distance, note, hightlighted, distanced, onChange, onHightlightedChange, onDistancedChange }: Props): JSX.Element => {
   // Return color
   return (
     <>
@@ -47,13 +48,14 @@ export const Color = ({ id, name, label, distance, format = `hex`, disabled, val
             </span>
 
             {(distance !== undefined) && (
-              <span className="block">
+              <span>
                 Distance:
-                <span className="font-mono select-text whitespace-pre ml-2">
+                <span className="font-mono select-text whitespace-pre mx-2">
                   {distance.toFixed(2).padStart(6)}%
                 </span>
               </span>
             )}
+            {note && <strong>{note}</strong>}
           </div>
 
           {onHightlightedChange && <Checkbox id={id && `${id}-hightlight`} name={name && `${name}-hightlight`} checked={hightlighted} onChange={onHightlightedChange} />}

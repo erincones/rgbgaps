@@ -1,7 +1,7 @@
 import { useState, Dispatch } from "react";
 
 import { CanvasState, CanvasAction } from "../../reducers/canvas";
-import { RGBFormat } from "../../lib/color";
+import { RGBFormat, toHex } from "../../lib/color";
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Section } from "./section";
@@ -31,9 +31,10 @@ import { Color } from "./color";
 export const Sidebar = ({ state, dispatch }: Props): JSX.Element => {
   const [ format, setFormat ] = useState<RGBFormat>(`hex`);
 
-  const { camera } = state;
+  const { camera, points } = state;
   const persp = camera.projection === `perspective`;
-
+  const nearest = points?.nearest;
+  const farthest = points?.farthest;
 
   // Return sidebar
   return (
@@ -64,14 +65,14 @@ export const Sidebar = ({ state, dispatch }: Props): JSX.Element => {
           </span>
           <Vector vec={camera.front} />
         </li>
-        <li>
+        <li className="mb-1">
           Projection:
           <div className="grid grid-cols-2 pl-2">
             <Radio id="persp" name="projection" label="Perspective" checked={persp} onChange={e => { dispatch({ type: `SET_PROJECTION`, projection: e.target.checked ? `perspective` : `orthogonal` }); }} />
             <Radio id="ortho" name="projection" label="Orthogonal" checked={!persp} onChange={e => { dispatch({ type: `SET_PROJECTION`, projection: e.target.checked ? `orthogonal` : `perspective` }); }} />
           </div>
         </li>
-        <li className="text-right">
+        <li>
           <Button title="Reset camera" onClick={() => { dispatch({ type: `RESET_CAMERA` }); }}>
             Reset
           </Button>
@@ -91,34 +92,50 @@ export const Sidebar = ({ state, dispatch }: Props): JSX.Element => {
             <Checkbox id="grid" name="grid" label="Grid" checked={state.drawGrid} onChange={e => { dispatch({ type: `SET_DRAW`, model: `GRID`, status: e.target.checked }); }} />
           </div>
         </li>
-        <hr className="mt-1" />
-        <Subsection title="Grid">
-          <li>
+        <li>
+          Color point:
+          <div className="pl-2">
             <Range
-              id="grid-size"
-              name="grid-size"
+              id="point-size"
+              name="point-size"
               label="Size:"
-              value={state.grid?.size}
-              span={state.grid?.size}
-              min="16"
+              value={points?.size * 256}
+              span={(points?.size * 256).toFixed().padStart(3)}
+              min="1"
               max="256"
-              onChange={e => { dispatch({ type: `SET_GRID_SIZE`, size: Number(e.target.value) }); }}
+              onChange={e => { dispatch({ type: `SET_POINT_SIZE`, size: Number(e.target.value) / 256 }); }}
             />
-          </li>
-          <li>
-            <Range
-              id="grid-gap"
-              name="grid-gap"
-              label="Dash length:"
-              value={state.gapGrid}
-              span={state.gapGrid}
-              min="0"
-              max="256"
-              onChange={e => { dispatch({ type: `SET_GRID_GAP`, gap: Number(e.target.value) }); }}
-            />
-          </li>
-        </Subsection>
-        <hr />
+          </div>
+        </li>
+        <li>
+          Grid:
+          <div className="pl-2">
+            <div>
+              <Range
+                id="grid-size"
+                name="grid-size"
+                label="Size:"
+                value={state.grid?.size}
+                span={state.grid?.size.toFixed().padStart(3)}
+                min="16"
+                max="256"
+                onChange={e => { dispatch({ type: `SET_GRID_SIZE`, size: Number(e.target.value) }); }}
+              />
+            </div>
+            <div>
+              <Range
+                id="grid-gap"
+                name="grid-gap"
+                label="Dash length:"
+                value={state.gapGrid}
+                span={state.gapGrid.toFixed().padStart(3)}
+                min="0"
+                max="256"
+                onChange={e => { dispatch({ type: `SET_GRID_GAP`, gap: Number(e.target.value) }); }}
+              />
+            </div>
+          </div>
+        </li>
         <Subsection title="Line color">
           <li className="flex justify-end text-center">
             <span className="w-1/3">RGB</span>
@@ -129,10 +146,10 @@ export const Sidebar = ({ state, dispatch }: Props): JSX.Element => {
               Axis:
             </span>
             <div className="flex justify-center w-1/3">
-              <Radio id="axis-rgb" name="color-axis" title="RGB" checked={state.colorAxis === `rgb`} onChange={e => { dispatch({ type: `SET_COLOR`, model: `AXIS`, mode: e.target.checked ? `rgb` : `black` }); }}/>
+              <Radio id="axis-rgb" name="color-axis" title="RGB" checked={state.colorAxis === `rgb`} onChange={e => { dispatch({ type: `SET_SATURATION`, model: `AXIS`, mode: e.target.checked ? `rgb` : `black` }); }}/>
             </div>
             <div className="flex justify-center w-1/3">
-              <Radio id="axis-black" name="color-axis" title="Black" checked={state.colorAxis === `black`} onChange={e => { dispatch({ type: `SET_COLOR`, model: `AXIS`, mode: e.target.checked ? `black` : `rgb` }); }}/>
+              <Radio id="axis-black" name="color-axis" title="Black" checked={state.colorAxis === `black`} onChange={e => { dispatch({ type: `SET_SATURATION`, model: `AXIS`, mode: e.target.checked ? `black` : `rgb` }); }}/>
             </div>
           </li>
           <li className="flex">
@@ -140,10 +157,10 @@ export const Sidebar = ({ state, dispatch }: Props): JSX.Element => {
               Grid:
             </span>
             <div className="flex justify-center w-1/3">
-              <Radio id="grid-rgb" name="color-grid" title="RGB" checked={state.colorGrid === `rgb`} onChange={e => { dispatch({ type: `SET_COLOR`, model: `GRID`, mode: e.target.checked ? `rgb` : `black` }); }}/>
+              <Radio id="grid-rgb" name="color-grid" title="RGB" checked={state.colorGrid === `rgb`} onChange={e => { dispatch({ type: `SET_SATURATION`, model: `GRID`, mode: e.target.checked ? `rgb` : `black` }); }}/>
             </div>
             <div className="flex justify-center w-1/3">
-              <Radio id="grid-black" name="color-grid" title="Black" checked={state.colorGrid === `black`} onChange={e => { dispatch({ type: `SET_COLOR`, model: `GRID`, mode: e.target.checked ? `black` : `rgb` }); }}/>
+              <Radio id="grid-black" name="color-grid" title="Black" checked={state.colorGrid === `black`} onChange={e => { dispatch({ type: `SET_SATURATION`, model: `GRID`, mode: e.target.checked ? `black` : `rgb` }); }}/>
             </div>
           </li>
           <li className="flex">
@@ -151,10 +168,10 @@ export const Sidebar = ({ state, dispatch }: Props): JSX.Element => {
               Diagonal:
             </span>
             <div className="flex justify-center w-1/3">
-              <Radio id="diag-rgb" name="color-diag" title="RGB" checked={state.colorDiagonal === `rgb`} onChange={e => { dispatch({ type: `SET_COLOR`, model: `DIAG`, mode: e.target.checked ? `rgb` : `black` }); }}/>
+              <Radio id="diag-rgb" name="color-diag" title="RGB" checked={state.colorDiagonal === `rgb`} onChange={e => { dispatch({ type: `SET_SATURATION`, model: `DIAG`, mode: e.target.checked ? `rgb` : `black` }); }}/>
             </div>
             <div className="flex justify-center w-1/3">
-              <Radio id="diag-black" name="color-diag" title="Black" checked={state.colorDiagonal === `black`} onChange={e => { dispatch({ type: `SET_COLOR`, model: `DIAG`, mode: e.target.checked ? `black` : `rgb` }); }}/>
+              <Radio id="diag-black" name="color-diag" title="Black" checked={state.colorDiagonal === `black`} onChange={e => { dispatch({ type: `SET_SATURATION`, model: `DIAG`, mode: e.target.checked ? `black` : `rgb` }); }}/>
             </div>
           </li>
           <li className="flex">
@@ -162,10 +179,10 @@ export const Sidebar = ({ state, dispatch }: Props): JSX.Element => {
               Points:
             </span>
             <div className="flex justify-center w-1/3">
-              <Radio id="points-rgb" name="color-points" title="RGB" checked={state.colorPoints === `rgb`} onChange={e => { dispatch({ type: `SET_COLOR`, model: `POINTS`, mode: e.target.checked ? `rgb` : `black` }); }}/>
+              <Radio id="points-rgb" name="color-points" title="RGB" checked={state.colorPoints === `rgb`} onChange={e => { dispatch({ type: `SET_SATURATION`, model: `POINTS`, mode: e.target.checked ? `rgb` : `black` }); }}/>
             </div>
             <div className="flex justify-center w-1/3">
-              <Radio id="points-black" name="color-points" title="Black" checked={state.colorPoints === `black`} onChange={e => { dispatch({ type: `SET_COLOR`, model: `POINTS`, mode: e.target.checked ? `black` : `rgb` }); }}/>
+              <Radio id="points-black" name="color-points" title="Black" checked={state.colorPoints === `black`} onChange={e => { dispatch({ type: `SET_SATURATION`, model: `POINTS`, mode: e.target.checked ? `black` : `rgb` }); }}/>
             </div>
           </li>
           <li className="flex">
@@ -173,10 +190,10 @@ export const Sidebar = ({ state, dispatch }: Props): JSX.Element => {
               Distances:
             </span>
             <div className="flex justify-center w-1/3">
-              <Radio id="dists-rgb" name="color-dists" title="RGB" checked={state.colorDistances === `rgb`} onChange={e => { dispatch({ type: `SET_COLOR`, model: `DISTS`, mode: e.target.checked ? `rgb` : `black` }); }}/>
+              <Radio id="dists-rgb" name="color-dists" title="RGB" checked={state.colorDistances === `rgb`} onChange={e => { dispatch({ type: `SET_SATURATION`, model: `DISTS`, mode: e.target.checked ? `rgb` : `black` }); }}/>
             </div>
             <div className="flex justify-center w-1/3">
-              <Radio id="dists-black" name="color-dists" title="Black" checked={state.colorDistances === `black`} onChange={e => { dispatch({ type: `SET_COLOR`, model: `DISTS`, mode: e.target.checked ? `black` : `rgb` }); }}/>
+              <Radio id="dists-black" name="color-dists" title="Black" checked={state.colorDistances === `black`} onChange={e => { dispatch({ type: `SET_SATURATION`, model: `DISTS`, mode: e.target.checked ? `black` : `rgb` }); }}/>
             </div>
           </li>
         </Subsection>
@@ -287,50 +304,99 @@ export const Sidebar = ({ state, dispatch }: Props): JSX.Element => {
           </div>
         </li>
         <li>
-          <div className="flex items-end space-x-2">
+          <div className="flex items-end space-x-1.5">
             <span className="flex-grow">
               Hightlight:
             </span>
             <label htmlFor="all-hightlighted" title="Colors" className="flex flex-col items-center space-y-0.5">
               <FontAwesomeIcon icon="bullseye" fixedWidth />
-              <Checkbox id="all-hightlighted" name="all-hightlighted" />
+              <Checkbox
+                id="all-hightlighted"
+                name="all-hightlighted"
+                checked={points?.hightlightedAllPoints()}
+                onChange={e => { dispatch({ type: `SET_HIGHTLIGHT`, model: `POINT`, status: e.target.checked }); }}
+              />
             </label>
             <label htmlFor="all-distanced" title="Distances" className="flex flex-col items-center space-y-0.5">
               <FontAwesomeIcon icon="route" fixedWidth />
-              <Checkbox id="all-distanced" name="all-distanced" />
+              <Checkbox
+                id="all-distanced"
+                name="all-distanced"
+                checked={points?.hightlightedAllDistances()}
+                onChange={e => { dispatch({ type: `SET_HIGHTLIGHT`, model: `DIST`, status: e.target.checked }); }}
+              />
             </label>
           </div>
         </li>
         <li>
-          <Color id="target" name="target" format={format} label="Target:" />
+          <Color
+            id="target"
+            name="target"
+            format={format}
+            label="Target:"
+            value={points?.target}
+            hightlighted={points?.hightlightTargetPoint}
+            onChange={e => { dispatch({ type: `SET_COLOR`, index: `target`, color: e.target.value }); }}
+            onHightlightedChange={e => { dispatch({ type: `SET_HIGHTLIGHT`, model: `POINT`, index: `target`, status: e.target.checked }); }}
+          />
         </li>
         <li>
-          <Color id="nearest" name="nearest" format={format} label="Nearest:" disabled />
+          <Color
+            id="nearest"
+            name="nearest"
+            format={format}
+            label="Nearest:"
+            value={nearest?.rgb}
+            distance={nearest?.distance * 100}
+            hightlighted={nearest?.hightlightPoint}
+            distanced={nearest?.hightlightDistance}
+            disabled
+            onHightlightedChange={e => { dispatch({ type: `SET_HIGHTLIGHT`, model: `POINT`, index: points?.nearestIndex, status: e.target.checked }); }}
+            onDistancedChange={e => { dispatch({ type: `SET_HIGHTLIGHT`, model: `DIST`, index: points?.nearestIndex, status: e.target.checked }); }}
+          />
+        </li>
+        <li>
+          <Color
+            id="farthest"
+            name="farthest"
+            format={format}
+            label="Farthtest:"
+            value={farthest?.rgb}
+            distance={farthest?.distance * 100}
+            hightlighted={farthest?.hightlightPoint}
+            distanced={farthest?.hightlightDistance}
+            disabled
+            onHightlightedChange={e => { dispatch({ type: `SET_HIGHTLIGHT`, model: `POINT`, index: points?.farthestIndex, status: e.target.checked }); }}
+            onDistancedChange={e => { dispatch({ type: `SET_HIGHTLIGHT`, model: `DIST`, index: points?.farthestIndex, status: e.target.checked }); }}
+          />
         </li>
         <hr className="mt-1" />
         <Subsection title="Palette" defaultOpen>
-          <li>
-            <ul className="flex space-x-2">
-              <li>
-                <Button title="Text editor" onClick={undefined}>
-                  Raw
-                </Button>
-              </li>
-              <li className="flex-grow text-right">
-                <Button title="Export current" onClick={undefined}>
-                  Export
-                </Button>
-              </li>
-              <li>
-                <Button title="Import" onClick={undefined}>
-                  Import
-                </Button>
-              </li>
-            </ul>
+          <li className="mb-1">
+            <Button onClick={undefined}>
+              Text editor
+            </Button>
           </li>
-          <li>
-            <Color format={format} />
-          </li>
+          {points?.colors.map(({ rgb, distance, hightlightPoint, hightlightDistance }, i) => {
+            const id = `${toHex(rgb)}-${i}`;
+
+            return (
+              <li key={id} className="mb-1">
+                <Color
+                  id={id}
+                  name={id}
+                  format={format}
+                  value={rgb}
+                  distance={distance * 100}
+                  hightlighted={hightlightPoint}
+                  distanced={hightlightDistance}
+                  onChange={e => { dispatch({ type: `SET_COLOR`, index: i, color: e.target.value }); }}
+                  onHightlightedChange={e => { dispatch({ type: `SET_HIGHTLIGHT`, model: `POINT`, index: i, status: e.target.checked }); }}
+                  onDistancedChange={e => { dispatch({ type: `SET_HIGHTLIGHT`, model: `DIST`, index: i, status: e.target.checked }); }}
+                />
+              </li>
+            );
+          })}
         </Subsection>
       </Section>
     </ul>

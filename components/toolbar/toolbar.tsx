@@ -22,8 +22,11 @@ interface Props {
  * @param props Toolbar component properties
  */
 export const Toolbar = ({ state, dispatch }: Props): JSX.Element => {
-  const { camera } = state;
+  const { camera, points } = state;
+
   const persp = camera.projection === `perspective`;
+  const hightlightedPoints = points?.hightlightedAllPoints();
+  const hightlightedDistances = points?.hightlightedAllDistances();
 
   // Return toolbar
   return (
@@ -37,18 +40,8 @@ export const Toolbar = ({ state, dispatch }: Props): JSX.Element => {
       <Separator />
 
       <div className="space-x-1">
-        <Button title="Import palette" onClick={undefined}>
-          <span className="fa-layers fa-fw">
-            <FontAwesomeIcon icon="palette" fixedWidth transform="left-2 shrink-2"/>
-            <FontAwesomeIcon icon="level-up-alt" fixedWidth transform="right-6 up-2" />
-          </span>
-        </Button>
-
-        <Button title="Export palette" onClick={undefined}>
-          <span className="fa-layers fa-fw">
-            <FontAwesomeIcon icon="palette" fixedWidth transform="left-2 shrink-2"/>
-            <FontAwesomeIcon icon="level-down-alt" fixedWidth transform="right-6" />
-          </span>
+        <Button title="Text palette editor" onClick={undefined}>
+          <FontAwesomeIcon icon="palette" fixedWidth/>
         </Button>
       </div>
 
@@ -82,11 +75,11 @@ export const Toolbar = ({ state, dispatch }: Props): JSX.Element => {
       <Separator />
 
       <div className="space-x-1">
-        <Button title="Highlight colors" onClick={undefined}>
+        <Button title="Highlight colors" onClick={() => { dispatch({ type: `SET_HIGHTLIGHT`, model: `POINT`, status: !hightlightedPoints }); }}>
           <FontAwesomeIcon icon="bullseye" fixedWidth />
         </Button>
 
-        <Button title="Hightlight nearest distance" onClick={undefined}>
+        <Button title="Hightlight distances" onClick={() => { dispatch({ type: `SET_HIGHTLIGHT`, model: `DIST`, status: !hightlightedDistances }); }}>
           <FontAwesomeIcon icon="route" fixedWidth />
         </Button>
       </div>

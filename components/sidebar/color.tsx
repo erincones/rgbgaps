@@ -40,8 +40,8 @@ export const Color = ({ id, name, label, distance, format = `hex`, disabled, val
 
       <div className={(label !== undefined) ? `pl-2` : undefined}>
         <div className="flex items-center space-x-2">
-          <input id={id} name={name} type="color" disabled={disabled} value={value ? toHex(value) : undefined} onChange={onChange} className="border disabled:border-0 border-blueGray-800 shadow focus:outline-none focus:ring w-4 h-4" />
-          <div className="text-xs leading-none">
+          <input id={id} name={name} type="color" disabled={disabled} readOnly={disabled} value={value ? toHex(value) : undefined} onChange={onChange} className="border disabled:border-0 border-blueGray-800 shadow focus:outline-none focus:ring w-4 h-4" />
+          <div className="flex-grow text-xs leading-none">
             <span className="block flex-grow font-mono select-text whitespace-pre">
               {toRGBString(value || BLACK, format)}
             </span>
@@ -57,7 +57,8 @@ export const Color = ({ id, name, label, distance, format = `hex`, disabled, val
           </div>
 
           {onHightlightedChange && <Checkbox id={id && `${id}-hightlight`} name={name && `${name}-hightlight`} checked={hightlighted} onChange={onHightlightedChange} />}
-          {onDistancedChange && <Checkbox id={id && `${id}-distance`} name={name && `${name}-distance`} checked={distanced} onChange={onHightlightedChange} />}
+          {onDistancedChange && <Checkbox id={id && `${id}-distance`} name={name && `${name}-distance`} checked={distanced} onChange={onDistancedChange} />}
+          {onHightlightedChange && !onDistancedChange && <input type="checkbox" className="invisible" />}
         </div>
       </div>
     </>

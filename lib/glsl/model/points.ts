@@ -1,7 +1,13 @@
 import { GLSLObject } from "../object";
-import { GLSLProgram } from "../program";
 
 import { distanceRGB, randRGB, BLACK, WHITE, GRAY, RED, GREEN, BLUE, RGB } from "../../color";
+
+
+/** Draw function */
+type DrawFunction = () => void;
+
+/** Uniform location function */
+type UniformLocationGetter = (name: string) => WebGLUniformLocation | null;
 
 
 /** Color data */
@@ -52,20 +58,8 @@ export class GLSLPoints extends GLSLObject<WebGL2RenderingContext> {
   /** Hightlight target */
   public hightlightTargetPoint = true;
 
-  /** Hightlight nearest point */
-  public hightlightNearestPoint = true;
-
-  /** Hightlight nearest point */
-  public hightlightFarthestPoint = true;
-
-  /** Hightlight nearest distance */
-  public hightlightNearestDistance = true;
-
-  /** Hightlight nearest distance */
-  public hightlightFarthestDistance = true;
-
   /** Point size */
-  public size = 1 / 256;
+  public size = 3 / 256;
 
 
   /**
@@ -107,18 +101,40 @@ export class GLSLPoints extends GLSLObject<WebGL2RenderingContext> {
         gl.enableVertexAttribArray(0);
 
 
-        this._colors = [ ...Array(5) ].map(() => {
+        let min = Number.POSITIVE_INFINITY;
+        let max = Number.NEGATIVE_INFINITY;
+
+        this._colors = [ ...Array(5) ].map((e, i) => {
           const rgb = randRGB();
+          const distance = distanceRGB(rgb, this._target);
+
+          if (distance < min) {
+            min = distance;
+            this._nearest = i;
+          }
+
+          if (distance > max) {
+            max = distance;
+            this._farthest = i;
+          }
 
           return {
             rgb,
-            distance: distanceRGB(rgb, this._target),
+            distance,
             drawPoint: true,
             drawDistance: true,
             hightlightPoint: false,
             hightlightDistance: false
           };
         });
+
+        const nearest = this._colors[this._nearest];
+        const farthest = this._colors[this._farthest];
+
+        nearest.hightlightPoint = true;
+        nearest.hightlightDistance = true;
+        farthest.hightlightPoint = true;
+        farthest.hightlightDistance = true;
 
         this.updateData();
       }
@@ -140,25 +156,55 @@ export class GLSLPoints extends GLSLObject<WebGL2RenderingContext> {
    * Calculate nearest, farthest and update the data
    */
   private updateData(): void {
-    let min = Number.POSITIVE_INFINITY;
-    let max = Number.NEGATIVE_INFINITY;
     const data: number[] = GLSLPoints.toSpace(this._target);
     const index: number[] = [];
 
-    this._colors.forEach(({ rgb, distance }, i) => {
-      if (distance < min) {
-        min = distance;
+    const oldNearest = this._colors[this._nearest];
+    const oldFarthest = this._colors[this._farthest];
+
+    let min = Number.POSITIVE_INFINITY;
+    let max = Number.NEGATIVE_INFINITY;
+
+    this._colors.forEach((color, i) => {
+      if (color.distance < min) {
+        min = color.distance;
         this._nearest = i;
       }
 
-      if (distance > max) {
-        max = distance;
+      if (color.distance > max) {
+        max = color.distance;
         this._farthest = i;
       }
 
-      data.push(...GLSLPoints.toSpace(rgb));
+      data.push(...GLSLPoints.toSpace(color.rgb));
       index.push(0, i + 1);
     });
+
+
+    const newNearest = this._colors[this._nearest];
+    const newFarthest = this._colors[this._farthest];
+    const inverted = oldFarthest === newNearest;
+
+    if (oldNearest.hightlightPoint) {
+      oldNearest.hightlightPoint = false;
+      newNearest.hightlightPoint = true;
+    }
+
+    if (oldNearest.hightlightDistance) {
+      oldNearest.hightlightDistance = false;
+      newNearest.hightlightDistance = true;
+    }
+
+    if (oldFarthest.hightlightPoint) {
+      oldFarthest.hightlightPoint = inverted;
+      newFarthest.hightlightPoint = true;
+    }
+
+    if (oldFarthest.hightlightDistance) {
+      oldFarthest.hightlightDistance = inverted;
+      newFarthest.hightlightDistance = true;
+    }
+
 
     this._data = new Float32Array(data);
     this._index = new Uint32Array(index);
@@ -176,25 +222,23 @@ export class GLSLPoints extends GLSLObject<WebGL2RenderingContext> {
   /**
    * Draw point hightlight.
    *
-   * @param model Model to draw
+   * @param draw Draw function
    * @param color Color uniform location
    * @param size Size uniform location
    * @param border Border color
    */
-  private drawHightlight(model: GLSLModel, color: WebGLUniformLocation | null, size: WebGLUniformLocation | null, border: RGB): void {
+  private drawHightlight(draw: DrawFunction, color: WebGLUniformLocation | null, size: WebGLUniformLocation | null, border: RGB): void {
     this.gl.uniform1f(size, this.size + 3 / 512);
     this.gl.uniform3fv(color, BLACK);
-    model.draw();
+    draw();
 
     this.gl.uniform1f(size, this.size + 2 / 512);
     this.gl.uniform3fv(color, border);
-    model.draw();
+    draw();
 
     this.gl.uniform1f(size, this.size + 1 / 512);
     this.gl.uniform3fv(color, BLACK);
-    model.draw();
-
-    this.gl.uniform1f(size, this.size);
+    draw();
   }
 
 
@@ -230,13 +274,23 @@ export class GLSLPoints extends GLSLObject<WebGL2RenderingContext> {
   }
 
   /** Nearest color */
-  public get nearest(): Color {
+  public get nearest(): Readonly<Color> {
     return this._colors[this._nearest];
   }
 
+  /** Nearest index */
+  public get nearestIndex(): number {
+    return this._nearest;
+  }
+
   /** Farthest color */
-  public get farthest(): Color {
+  public get farthest(): Readonly<Color> {
     return this._colors[this._farthest];
+  }
+
+  /** Farthest index */
+  public get farthestIndex(): number {
+    return this._farthest;
   }
 
   /** Vertex array object */
@@ -271,12 +325,17 @@ export class GLSLPoints extends GLSLObject<WebGL2RenderingContext> {
    * @param i Color index
    * @param rgb Color
    */
-  public setColor(i: number, rgb: RGB): void {
-    const color = this._colors[i];
-    color.rgb = rgb;
-    color.distance = distanceRGB(rgb, this._target);
+  public setColor(i: number | `target`, rgb: RGB): void {
+    if (i === `target`) {
+      this.target = rgb;
+    }
+    else {
+      const color = this._colors[i];
+      color.rgb = rgb;
+      color.distance = distanceRGB(rgb, this._target);
 
-    this.updateData();
+      this.updateData();
+    }
   }
 
 
@@ -295,9 +354,14 @@ export class GLSLPoints extends GLSLObject<WebGL2RenderingContext> {
    * @param i Color index
    * @param draw Draw status
    */
-  public setDrawPoint(i: number, draw: boolean): void {
-    const color = this._colors[i];
-    color.drawPoint = draw;
+  public setDrawPoint(i: number | `target`, draw: boolean): void {
+    if (i === `target`) {
+      this.drawTarget = draw;
+    }
+    else {
+      const color = this._colors[i];
+      color.drawPoint = draw;
+    }
   }
 
   /**
@@ -318,7 +382,7 @@ export class GLSLPoints extends GLSLObject<WebGL2RenderingContext> {
    *
    * @returns Whether all ditances are drawable
    */
-  public getDrawDistances(): boolean {
+  public drawingAllDistances(): boolean {
     return this._colors.every(({ drawDistance }) => drawDistance);
   }
 
@@ -345,13 +409,12 @@ export class GLSLPoints extends GLSLObject<WebGL2RenderingContext> {
   }
 
 
-
   /**
    * Get if all points are hightlighted.
    *
    * @returns Whether all points are hightlighted
    */
-  public getHightlightPoints(): boolean {
+  public hightlightedAllPoints(): boolean {
     return this._colors.every(({ hightlightPoint }) => hightlightPoint);
   }
 
@@ -361,9 +424,14 @@ export class GLSLPoints extends GLSLObject<WebGL2RenderingContext> {
    * @param i Color index
    * @param hightlight Hightlight status
    */
-  public setHightlightPoint(i: number, hightlight: boolean): void {
-    const color = this._colors[i];
-    color.hightlightPoint = hightlight;
+  public setHightlightPoint(i: number | `target`, hightlight: boolean): void {
+    if (i === `target`) {
+      this.hightlightTargetPoint = hightlight;
+    }
+    else {
+      const color = this._colors[i];
+      color.hightlightPoint = hightlight;
+    }
   }
 
   /**
@@ -372,6 +440,8 @@ export class GLSLPoints extends GLSLObject<WebGL2RenderingContext> {
    * @param hightlight Hightlight status
    */
   public setHightlightPoints(hightlight: boolean): void {
+    this.hightlightTargetPoint = hightlight;
+
     this._colors.forEach(color => {
       color.hightlightPoint = hightlight;
     });
@@ -382,7 +452,7 @@ export class GLSLPoints extends GLSLObject<WebGL2RenderingContext> {
    *
    * @returns Whether all ditances are hightlighted
    */
-  public getHightlightDistances(): boolean {
+  public hightlightedAllDistances(): boolean {
     return this._colors.every(({ hightlightDistance }) => hightlightDistance);
   }
 
@@ -433,7 +503,7 @@ export class GLSLPoints extends GLSLObject<WebGL2RenderingContext> {
    * @param i Color index
    */
   public removeColor(i: number): void {
-    if (this._colors.length > 1) {
+    if (this._colors.length > 2) {
       this._colors = this._colors.slice(i).concat(this._colors.slice(i + 1));
 
       this.updateData();
@@ -449,19 +519,16 @@ export class GLSLPoints extends GLSLObject<WebGL2RenderingContext> {
   }
 
   /**
-   * Draw points array with the given program and model.
+   * Draw points array with the given program and
    *
-   * @param program GLSL program
-   * @param model Model to draw
+   * @param getLocation Uniform location getter
+   * @param draw Draw function
    * @param hightlight Hightlight points
    */
-  public drawPoints(program: GLSLProgram, model: GLSLModel): void {
-    model.bind();
-
-    const size = program.getLocation(`u_size`);
-    const color = program.getLocation(`u_color`);
-    const position = program.getLocation(`u_position`);
-
+  public drawPoints(getLocation: UniformLocationGetter, draw: DrawFunction): void {
+    const size = getLocation(`u_size`);
+    const color = getLocation(`u_color`);
+    const position = getLocation(`u_position`);
 
     this._colors.forEach(({ rgb, drawDistance, hightlightPoint }, i) => {
       if (drawDistance) {
@@ -470,12 +537,13 @@ export class GLSLPoints extends GLSLObject<WebGL2RenderingContext> {
 
         this.gl.uniform3fv(position, GLSLPoints.toSpace(rgb));
 
-        if (hightlightPoint || (near && this.hightlightNearestPoint) || (far && this.hightlightFarthestPoint)) {
-          this.drawHightlight(model, color, size, near ? GREEN : far ? RED : WHITE);
+        if (hightlightPoint) {
+          this.drawHightlight(draw, color, size, near ? GREEN : far ? RED : WHITE);
         }
 
+        this.gl.uniform1f(size, this.size);
         this.gl.uniform3fv(color, rgb);
-        model.draw();
+        draw();
       }
     });
 
@@ -483,52 +551,54 @@ export class GLSLPoints extends GLSLObject<WebGL2RenderingContext> {
       this.gl.uniform3fv(position, GLSLPoints.toSpace(this._target));
 
       if (this.hightlightTargetPoint) {
-        this.drawHightlight(model, color, size, BLUE);
+        this.drawHightlight(draw, color, size, BLUE);
       }
 
+      this.gl.uniform1f(size, this.size);
       this.gl.uniform3fv(color, this._target);
-      model.draw();
+      draw();
     }
   }
 
   /**
-   * Draw point at the given index with the given program and model.
+   * Draw point at the given index with the given program and
    *
-   * @param program GLSL program
+   * @param getLocation Uniform location getter
    * @param model Model
    * @param i Color index
    */
-  public drawPoint(program: GLSLProgram, model: GLSLModel, i: number | `target`): void {
+  public drawPoint(getLocation: UniformLocationGetter, draw: DrawFunction, i: number | `target`): void {
     const rgb = i === `target` ? {
       rgb: this._target,
-      hightlightPoint: this.hightlightNearestPoint,
+      hightlightPoint: this.hightlightTargetPoint,
       border: BLUE
     } : {
       ...this._colors[i],
       border: i === this._nearest ? GREEN : i === this._farthest ? RED : WHITE
     };
 
-    const size = program.getLocation(`u_size`);
-    const color = program.getLocation(`u_color`);
+    const size = getLocation(`u_size`);
+    const color = getLocation(`u_color`);
 
-    this.gl.uniform3fv(program.getLocation(`u_position`), GLSLPoints.toSpace(rgb.rgb));
+    this.gl.uniform3fv(getLocation(`u_position`), GLSLPoints.toSpace(rgb.rgb));
 
     if (rgb.hightlightPoint) {
-      this.drawHightlight(model, color, size, rgb.border);
+      this.drawHightlight(draw, color, size, rgb.border);
     }
 
+    this.gl.uniform1f(size, this.size);
     this.gl.uniform3fv(color, rgb.rgb);
-    model.draw();
+    draw();
   }
 
   /**
    * Draw distance array at the given index.
    *
-   * @param program GLSL program
+   * @param getLocation Uniform location getter
    * @param i Color index
    * @param saturation Saturation
    */
-  public drawDistance(program: GLSLProgram, i: number, saturation = 0): void {
+  public drawDistance(getLocation: UniformLocationGetter, i: number, saturation = 0): void {
     const offset = i * 8;
 
     const draw = () => {
@@ -536,13 +606,12 @@ export class GLSLPoints extends GLSLObject<WebGL2RenderingContext> {
     };
 
 
-
-    if (this._colors[i].hightlightDistance || ((i === this._nearest) && this.hightlightNearestDistance) || ((i === this._farthest) && this.hightlightFarthestDistance)) {
+    if (this._colors[i].hightlightDistance) {
       const step = 1 / 1024;
       const vec = [ -step, -step, -step ];
 
-      const position = program.getLocation(`u_position`);
-      const rgb = program.getLocation(`u_rgb`);
+      const position = getLocation(`u_position`);
+      const rgb = getLocation(`u_rgb`);
 
       this.gl.uniform1f(rgb, 0);
 
@@ -565,13 +634,13 @@ export class GLSLPoints extends GLSLObject<WebGL2RenderingContext> {
   /**
    * Draw distances array.
    *
-   * @param program GLSL program
+   * @param getLocation Uniform location getter
    * @param saturation Saturation
    */
-  public drawDistances(program: GLSLProgram, saturation = 0): void {
+  public drawDistances(getLocation: UniformLocationGetter, saturation = 0): void {
     this._colors.forEach(({ drawDistance }, i) => {
       if (drawDistance) {
-        this.drawDistance(program, i, saturation);
+        this.drawDistance(getLocation, i, saturation);
       }
     });
   }

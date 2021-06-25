@@ -21,7 +21,7 @@ import DISTS_FRAG from "../shaders/distances.frag";
 
 
 /** Line color */
-type DRAWING_COLOR = `black` | `rgb`;
+type SATURATION = `black` | `rgb`;
 
 
 /** Canvas state */
@@ -46,25 +46,25 @@ export interface CanvasState {
   readonly alphaOut: number;
 
   readonly drawDiagonal: boolean;
-  readonly colorDiagonal: DRAWING_COLOR;
+  readonly colorDiagonal: SATURATION;
   readonly alphaDiagonal: number;
 
   readonly axis: GLSLAxis;
   readonly drawAxis: boolean;
-  readonly colorAxis: DRAWING_COLOR;
+  readonly colorAxis: SATURATION;
   readonly alphaAxis: number;
 
   readonly grid: GLSLGrid;
   readonly drawGrid: boolean;
-  readonly colorGrid: DRAWING_COLOR;
+  readonly colorGrid: SATURATION;
   readonly alphaGrid: number;
   readonly gapGrid: number;
 
   readonly points: GLSLPoints;
-  readonly colorPoints: DRAWING_COLOR;
+  readonly colorPoints: SATURATION;
   readonly alphaPoints: number;
 
-  readonly colorDistances: DRAWING_COLOR;
+  readonly colorDistances: SATURATION;
   readonly alphaDistances: number;
 
   readonly errors: ReadonlyArray<string>;
@@ -102,26 +102,52 @@ export type CanvasAction = {
   readonly model: `CUBE` | `AXIS` | `GRID` | `DIAG`;
   readonly status: boolean;
 } | {
-  readonly type: `SET_COLOR`;
+  readonly type: `SET_DRAW`;
+  readonly model: `POINT`;
+  readonly index: `target`;
+  readonly status: boolean;
+} | {
+  readonly type: `SET_DRAW`;
+  readonly model: `POINT` | `DIST`;
+  readonly index?: number;
+  readonly status: boolean;
+} | {
+  readonly type: `SET_HIGHTLIGHT`;
+  readonly model: `POINT`;
+  readonly index: `target`;
+  readonly status: boolean;
+} | {
+  readonly type: `SET_HIGHTLIGHT`;
+  readonly model: `POINT` | `DIST`;
+  readonly index?: number;
+  readonly status: boolean;
+} | {
+  readonly type: `SET_SATURATION`;
   readonly model: `AXIS` | `GRID` | `DIAG` | `POINTS` | `DISTS`;
-  readonly mode: DRAWING_COLOR;
+  readonly mode: SATURATION;
 } | {
   readonly type: `SET_ALPHA`;
   readonly model: `IN` | `OUT` | `AXIS` | `GRID` | `DIAG` | `POINTS` | `DISTS`;
   readonly opacity: number;
-} | {
-  readonly type: `SET_TARGET`;
-  readonly color: string;
-} | {
-  readonly type: `SET_HIGHTLIGHT`;
-  readonly model: `NEAREST` | `NEAREST_DIST`;
-  readonly status: boolean;
 } | {
   readonly type: `SET_GRID_SIZE`;
   readonly size: number;
 } | {
   readonly type: `SET_GRID_GAP`;
   readonly gap: number;
+} | {
+  readonly type: `SET_POINT_SIZE`;
+  readonly size: number;
+} | {
+  readonly type: `SET_COLOR`;
+  readonly index: number | `target`;
+  readonly color: string;
+} | {
+  readonly type: `REMOVE_COLOR`;
+  readonly index: number;
+} | {
+  readonly type: `ADD_COLOR`;
+  readonly color: string;
 } | {
   readonly type: `CLOSE_ERRORS`;
 } | {
@@ -261,15 +287,16 @@ const render = (state: CanvasState): CanvasState => {
   points.bind();
 
   gl.uniform1f(programDistances.getLocation(`u_alpha`), alphaDistances);
-  points.drawDistances(programDistances, colorDistances === `rgb` ? 1 : 0);
+  points.drawDistances(name => programDistances.getLocation(name), colorDistances === `rgb` ? 1 : 0);
 
   // Draw points and distances
   programPoints.use();
   camera.bind(gl, programPoints);
+  cube.bind();
 
   gl.uniform1f(programPoints.getLocation(`u_rgb`), colorPoints === `rgb` ? 1 : 0);
   gl.uniform1f(programPoints.getLocation(`u_alpha`), alphaPoints);
-  points.drawPoints(programPoints, cube);
+  points.drawPoints(name => programPoints.getLocation(name), () => { cube.drawCube(); });
 
 
   // Return state
@@ -516,7 +543,7 @@ export const initialCanvas: CanvasState = {
   colorPoints: `rgb`,
   alphaPoints: 0.9,
   colorDistances: `black`,
-  alphaDistances: 0.8,
+  alphaDistances: 0.45,
   errors: []
 };
 
@@ -529,7 +556,7 @@ export const initialCanvas: CanvasState = {
  * @returns Next state
  */
 export const canvasReducer = (state: CanvasState, action: CanvasAction): CanvasState => {
-  const { camera } = state;
+  const { camera, points } = state;
 
 
   switch (action.type) {
@@ -568,6 +595,43 @@ export const canvasReducer = (state: CanvasState, action: CanvasAction): CanvasS
       case `AXIS`: return render({ ...state, drawAxis: action.status });
       case `GRID`: return render({ ...state, drawGrid: action.status });
       case `DIAG`: return render({ ...state, drawDiagonal: action.status });
+      case `POINT`:
+        action.index === undefined ?
+          points.setDrawPoints(action.status) :
+          points.setDrawPoint(action.index, action.status);
+        return render(state);
+
+      case `DIST`:
+        action.index === undefined ?
+          points.setDrawDistances(action.status) :
+          points.setDrawDistance(action.index, action.status);
+        return render(state);
+
+      default: return state;
+    }
+
+    case `SET_HIGHTLIGHT`: switch(action.model) {
+      case `POINT`:
+        action.index === undefined ?
+          points.setHightlightPoints(action.status) :
+          points.setHightlightPoint(action.index, action.status);
+        return render(state);
+
+      case `DIST`:
+        action.index === undefined ?
+          points.setHightlightDistances(action.status) :
+          points.setHightlightDistance(action.index, action.status);
+        return render(state);
+
+      default: return state;
+    }
+
+    case `SET_SATURATION`: switch (action.model) {
+      case `AXIS`:   return render({ ...state, colorAxis: action.mode });
+      case `GRID`:   return render({ ...state, colorGrid: action.mode });
+      case `DIAG`:   return render({ ...state, colorDiagonal: action.mode });
+      case `POINTS`: return render({ ...state, colorPoints: action.mode });
+      case `DISTS`:  return render({ ...state, colorDistances: action.mode });
       default: return state;
     }
 
@@ -582,28 +646,16 @@ export const canvasReducer = (state: CanvasState, action: CanvasAction): CanvasS
       default: return state;
     }
 
-    case `SET_COLOR`: switch (action.model) {
-      case `AXIS`:   return render({ ...state, colorAxis: action.mode });
-      case `GRID`:   return render({ ...state, colorGrid: action.mode });
-      case `DIAG`:   return render({ ...state, colorDiagonal: action.mode });
-      case `POINTS`: return render({ ...state, colorPoints: action.mode });
-      case `DISTS`:  return render({ ...state, colorDistances: action.mode });
-      default: return state;
-    }
-
-    case `SET_TARGET`: return state;
-
-    case `SET_HIGHTLIGHT`: switch(action.model) {
-      case `NEAREST`:
-      case `NEAREST_DIST`:
-      default: return state;
-    }
-
     case `SET_GRID_SIZE`:
       state.grid.size = action.size;
       return render(state);
 
     case `SET_GRID_GAP`: return render({ ...state, gapGrid: action.gap });
+
+    case `SET_POINT_SIZE`: points.size = action.size; return render(state);
+    case `SET_COLOR`: points.setColor(action.index, toRGB(action.color) || BLACK); return render(state);
+    case `ADD_COLOR`: points.addColor(toRGB(action.color) || BLACK); return render(state);
+    case `REMOVE_COLOR`: points.removeColor(action.index); return render(state);
 
     case `CLOSE_ERRORS`: return { ...state, errors: [] };
     case `CLEAN_UP`: return cleanUp(state);

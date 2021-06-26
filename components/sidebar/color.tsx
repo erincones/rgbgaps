@@ -30,7 +30,7 @@ interface Props {
 
 
 /** Maximum distance */
-const DISTANCE_FACTOR = 100 * Math.sqrt(3);
+const DISTANCE_FACTOR = 100 / Math.sqrt(3);
 
 
 /**

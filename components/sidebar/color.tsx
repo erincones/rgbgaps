@@ -56,7 +56,7 @@ export const Color = ({ id, name, label, format = `hex`, disabled, value, distan
               <span>
                 Distance:
                 <span className="font-mono select-text whitespace-pre mx-2">
-                  {distance.toFixed(2).padStart(6)}%
+                  {(distance).toFixed(4).padStart(6)}%
                 </span>
               </span>
             )}

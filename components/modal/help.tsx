@@ -67,7 +67,7 @@ export const Help = ({ open, onClose }: Props): JSX.Element => {
         </p>
         <p>
           <small>
-            <strong>None:</strong> This tool still may not work properly with
+            <strong>Note:</strong> This tool still may not work properly with
             touch screens.
           </small>
         </p>

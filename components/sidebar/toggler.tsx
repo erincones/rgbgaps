@@ -26,7 +26,7 @@ interface Props {
 export const Toggler = ({ id, label, title, name, value, icon, onClick }: Props): JSX.Element => {
   return (
     <span title={title} className="flex items-center">
-      <button id={id} name={name} type="button" title={title} value={value} onClick={onClick} className={`${icon ? `bg-lightBlue-800 ` : `bg-white hover:bg-blueGray-200 border `}flex items-center justify-center border-blueGray-800 shadow cursor-default focus:outline-none focus:ring w-4 h-4`}>
+      <button id={id} name={name} type="button" title={title} value={value} onClick={onClick} className={`${icon ? `bg-lightBlue-800 ` : `bg-white hover:bg-blueGray-200 border `}flex justify-center items-center border-blueGray-800 shadow cursor-default focus:outline-none focus:ring w-4 h-4`}>
         {icon && (
           <FontAwesomeIcon icon={icon} fixedWidth className="text-white text-xs" />
         )}

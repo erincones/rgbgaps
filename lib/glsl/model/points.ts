@@ -251,6 +251,37 @@ export class GLSLPoints extends GLSLObject<WebGL2RenderingContext> {
     return this._colors;
   }
 
+  /** Colors */
+  public set colors(palette: ReadonlyArray<Readonly<Color>>) {
+    this._colors = palette.map(color => {
+      return {
+        ...color,
+        distance: distanceRGB(color.rgb, this._target)
+      };
+    });
+
+    const left = 2 - this._colors.length;
+
+    if (left > 0) {
+      const missing = [ ...Array(left) ].map(() => {
+        const rgb = randRGB();
+
+        return {
+          rgb,
+          distance: distanceRGB(rgb, this._target),
+          drawPoint: true,
+          drawDistance: true,
+          hightlightPoint: true,
+          hightlightDistance: true
+        };
+      });
+
+      this._colors.push(...missing);
+    }
+
+    this.updateData();
+  }
+
   /** Nearest color */
   public get nearest(): Readonly<Color> {
     return this._colors[this._nearest];

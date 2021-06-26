@@ -23,12 +23,22 @@ module.exports = {
       cursor: {
         grab: `grab`,
         grabbing: `grabbing`
+      },
+      width: {
+        "full-4": `calc(100% - 1rem)`
+      },
+      maxHeight: {
+        "full-8": `calc(100% - 2rem)`
       }
     }
   },
   variants: {
     extend: {
-      borderWidth: [ `disabled` ]
+      backgroundColor: [ `disabled` ],
+      textColor: [ `disabled` ],
+      borderWidth: [ `disabled` ],
+      borderColor: [ `disabled` ],
+      cursor: [ `disabled` ]
     }
   },
   plugins: [

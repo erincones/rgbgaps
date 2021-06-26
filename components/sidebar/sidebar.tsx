@@ -1,7 +1,7 @@
-import { useState, Dispatch } from "react";
+import { Dispatch, SetStateAction, ButtonHTMLAttributes } from "react";
 
 import { CanvasState, CanvasAction } from "../../reducers/canvas";
-import { RGBFormat, toHex, randRGB, BLACK } from "../../lib/color";
+import { toHex, randRGB, RGBFormat, BLACK } from "../../lib/color";
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Section } from "./section";
@@ -20,7 +20,10 @@ import { Color } from "./color";
  */
  interface Props {
   readonly state: CanvasState;
+  readonly format?: RGBFormat;
   readonly dispatch: Dispatch<CanvasAction>;
+  readonly setFormat?: Dispatch<SetStateAction<RGBFormat>>;
+  readonly openTextEditor?: ButtonHTMLAttributes<HTMLButtonElement>["onClick"];
 }
 
 
@@ -29,9 +32,7 @@ import { Color } from "./color";
  *
  * @param props Sidebar properties
  */
-export const Sidebar = ({ state, dispatch }: Props): JSX.Element => {
-  const [ format, setFormat ] = useState<RGBFormat>(`hex`);
-
+export const Sidebar = ({ state, format, dispatch, setFormat, openTextEditor }: Props): JSX.Element => {
   const { camera, points } = state;
   const persp = camera.projection === `perspective`;
   const nearest = points?.nearest;
@@ -447,10 +448,10 @@ export const Sidebar = ({ state, dispatch }: Props): JSX.Element => {
         <li>
           Format:
           <div className="grid grid-rows-2 grid-cols-2 pl-2">
-            <Radio id="hex" name="format" label="Hexadecimal" checked={format === `hex`} onChange={() => { setFormat(`hex`); }} />
-            <Radio id="rgb" name="format" label="0..255" checked={format === `rgb`} onChange={() => { setFormat(`rgb`); }} />
-            <Radio id="pct" name="format" label="Percentage" checked={format === `pct`} onChange={() => { setFormat(`pct`); }} />
-            <Radio id="arith" name="format" label="0..1" checked={format === `arith`} onChange={() => { setFormat(`arith`); }} />
+            <Radio id="hex" name="format" label="Hexadecimal" checked={format === `hex`} onChange={setFormat && (() => { setFormat(`hex`); })} />
+            <Radio id="rgb" name="format" label="0..255" checked={format === `rgb`} onChange={setFormat && (() => { setFormat(`rgb`); })} />
+            <Radio id="pct" name="format" label="Percentage" checked={format === `pct`} onChange={setFormat && (() => { setFormat(`pct`); })} />
+            <Radio id="arith" name="format" label="0..1" checked={format === `arith`} onChange={setFormat && (() => { setFormat(`arith`); })} />
           </div>
         </li>
         <li>
@@ -519,7 +520,7 @@ export const Sidebar = ({ state, dispatch }: Props): JSX.Element => {
         <hr className="mt-1" />
         <Subsection title="Palette" defaultOpen>
           <li className="flex space-x-2 mb-1">
-            <Button onClick={undefined}>
+            <Button onClick={openTextEditor}>
               Text editor
             </Button>
             <Button onClick={() => { dispatch({ type: `ADD_COLOR`, color: toHex(randRGB()) }); }}>

@@ -1,12 +1,16 @@
-import { useReducer } from "react";
+import { useReducer, useState } from "react";
+
+import { RGBFormat } from "../lib/color";
 
 import { canvasReducer, initialCanvas } from "../reducers/canvas";
 
 import { SEO } from "../components/seo";
 import { SecureContext } from "../components/secure-context";
+import { Header } from "../components/header";
 import { Sidebar } from "../components/sidebar";
 import { Toolbar } from "../components/toolbar";
 import { Canvas } from "../components/canvas";
+import { TextEditor, Help } from "../components/modal";
 
 
 /**
@@ -16,6 +20,15 @@ import { Canvas } from "../components/canvas";
  */
 const Index = (): JSX.Element => {
   const [ state, dispatch ] = useReducer(canvasReducer, initialCanvas);
+  const [ format, setFormat ] = useState<RGBFormat>(`hex`);
+  const [ showTextEditor, setShowTextEditor ] = useState(false);
+  const [ showHelp, setShowHelp ] = useState(false);
+
+
+  const openTextEditor = () => { setShowTextEditor(true); };
+  const closeTextEditor = () => { setShowTextEditor(false); };
+  const openHelp = () => { setShowHelp(true); };
+  const closeHelp = () => { setShowHelp(false); };
 
 
   // Return index component
@@ -24,18 +37,15 @@ const Index = (): JSX.Element => {
       <SEO title="RGB Gaps" />
 
       <div className="flex flex-col select-none min-h-screen md:max-h-screen">
-        {/* Header */}
-        <header className="bg-blueGray-600 text-center px-2 py-1">
-          <h3 className="text-blueGray-100 text-xl font-bold">
-            RGB Gaps
-          </h3>
-        </header>
+        <Header>
+          RGB Gaps
+        </Header>
 
         <SecureContext>
-          <Sidebar state={state} dispatch={dispatch} />
+          <Sidebar state={state} format={format} dispatch={dispatch} setFormat={setFormat} openTextEditor={openTextEditor} />
 
           <section className="flex flex-col flex-grow bg-trueGray-50 overflow-hidden">
-            <Toolbar state={state} dispatch={dispatch} />
+            <Toolbar state={state} dispatch={dispatch} openTextEditor={openTextEditor} openHelp={openHelp} />
 
             <div className="flex-grow overflow-hidden">
               <Canvas state={state} dispatch={dispatch} />
@@ -43,6 +53,17 @@ const Index = (): JSX.Element => {
           </section>
         </SecureContext>
       </div>
+
+      <TextEditor
+        open={showTextEditor}
+        state={state}
+        format={format}
+        dispatch={dispatch}
+        setFormat={setFormat}
+        onClose={closeTextEditor}
+      />
+
+      <Help open={showHelp} onClose={closeHelp} />
     </>
   );
 };

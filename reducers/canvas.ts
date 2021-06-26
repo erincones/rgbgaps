@@ -139,6 +139,9 @@ export type CanvasAction = {
   readonly type: `SET_POINT_SIZE`;
   readonly size: number;
 } | {
+  readonly type: `SET_PALETTE`;
+  readonly palette: ReadonlyArray<RGB>;
+} | {
   readonly type: `SET_COLOR`;
   readonly index: number | `target`;
   readonly color: string;
@@ -653,6 +656,18 @@ export const canvasReducer = (state: CanvasState, action: CanvasAction): CanvasS
     case `SET_GRID_GAP`: return render({ ...state, gapGrid: action.gap });
 
     case `SET_POINT_SIZE`: points.size = action.size; return render(state);
+
+    case `SET_PALETTE`:
+      points.colors = action.palette.map(rgb => ({
+        rgb,
+        distance: Number.POSITIVE_INFINITY,
+        drawPoint: true,
+        drawDistance: true,
+        hightlightPoint: false,
+        hightlightDistance: false
+      }));
+      return render(state);
+
     case `SET_COLOR`: points.setColor(action.index, toRGB(action.color) || BLACK); return render(state);
     case `ADD_COLOR`: points.addColor(toRGB(action.color) || BLACK); return render(state);
     case `REMOVE_COLOR`: points.removeColor(action.index); return render(state);

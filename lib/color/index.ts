@@ -25,21 +25,76 @@ export const BLUE: RGB = [ 0, 0, 1 ];
 
 
 /** Hexadecimal regex */
-const HEX = /^#([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})$/;
+const HEX = /^#?([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})$/;
 
 /** Hexadecimal short regex */
-const HEX_SHORT = /^#([0-9A-Fa-f])([0-9A-Fa-f])([0-9A-Fa-f])$/;
+const HEX_SHORT = /^#?([0-9A-Fa-f])([0-9A-Fa-f])([0-9A-Fa-f])$/;
+
+/** Triplet regex */
+const TRIPLET = /^\(?\s*([\w.%]+)\s*,\s*([\w.%]+)\s*,\s*([\w.%]+)\s*\)?$/;
+
+/** Parentheses regex */
+const PARENTHESES = /^\(.*\)$|^[^(](?:.*[^)])?/;
 
 
 /**
- * Parse hexadecimal color to RGB color.
+ * Parse string color to RGB color.
  *
- * @param hex Hexadecimal color
+ * @param str String color
  * @returns RGBA color
  */
-export const toRGB = (hex: string): RGB | null => {
-  const color = hex.match(HEX) || hex.match(HEX_SHORT);
-  return color && color.slice(1).map(ch => Number.parseInt(ch.length === 1 ? `${ch}${ch}` : ch, 16) / 255) as never;
+export const toRGB = (str: string, format: RGBFormat = `hex`): RGB | null => {
+  let match: RegExpMatchArray | null = null;
+  let rgb: number[];
+
+  switch (format) {
+    case `rgb`:
+      match = str.match(TRIPLET);
+
+      if (!match || !PARENTHESES.test(str)) return null;
+
+      rgb = match.slice(1).map(c => {
+        const int = parseInt(c);
+        const float = parseFloat(c);
+
+        return int === float ? int / 255 : Number.NaN;
+      });
+
+      return rgb.some(c => isNaN(c)) ? null : rgb as never;
+
+    case `arith`:
+      match = str.match(TRIPLET);
+
+      if (!match || !PARENTHESES.test(str)) return null;
+
+      rgb = match.slice(1).map(c => parseFloat(c) / 255);
+
+      return rgb.some(c => isNaN(c)) ? null : rgb as never;
+
+    case `pct`:
+      match = str.match(TRIPLET);
+
+      if (!match || !PARENTHESES.test(str)) return null;
+
+      rgb = match.slice(1).map(c => parseFloat(c.slice(0, -1)) / 25500);
+
+      return rgb.some(c => isNaN(c)) ? null : rgb as never;
+
+    default:
+      match = str.match(HEX);
+
+      if (match) {
+        return match.slice(1).map(c => parseInt(c, 16) / 255) as never;
+      }
+
+      match = str.match(HEX_SHORT);
+
+      if (match) {
+        return match.slice(1).map(c => parseInt(c + c, 16) / 255) as never;
+      }
+
+      return null;
+  }
 };
 
 /**

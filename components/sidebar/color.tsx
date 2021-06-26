@@ -64,7 +64,7 @@ export const Color = ({ id, name, label, format = `hex`, disabled, value, distan
           </div>
 
           {onRemoveClick && (
-            <button type="button" title="Remove color" onClick={onRemoveClick} className="flex items-center justify-center bg-red-500 hover:bg-red-600 border border-blueGray-800 shadow focus:outline-none focus:ring focus:ring-red-500 focus:ring-opacity-50 w-4 h-4">
+            <button type="button" title="Remove color" onClick={onRemoveClick} className="flex justify-center items-center bg-red-500 hover:bg-red-600 border border-blueGray-800 shadow focus:outline-none focus:ring focus:ring-red-500 focus:ring-opacity-50 w-4 h-4">
               <FontAwesomeIcon icon="times" fixedWidth className="text-white text-xs" />
             </button>
           )}

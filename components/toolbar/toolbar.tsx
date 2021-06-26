@@ -1,4 +1,4 @@
-import { Dispatch } from "react";
+import { Dispatch, ButtonHTMLAttributes } from "react";
 
 import { CanvasState, CanvasAction } from "../../reducers/canvas";
 
@@ -13,6 +13,8 @@ import { Button } from "./button";
 interface Props {
   readonly state: CanvasState;
   readonly dispatch: Dispatch<CanvasAction>;
+  readonly openTextEditor?: ButtonHTMLAttributes<HTMLButtonElement>["onClick"];
+  readonly openHelp?: ButtonHTMLAttributes<HTMLButtonElement>["onClick"];
 }
 
 
@@ -21,7 +23,7 @@ interface Props {
  *
  * @param props Toolbar component properties
  */
-export const Toolbar = ({ state, dispatch }: Props): JSX.Element => {
+export const Toolbar = ({ state, dispatch, openTextEditor, openHelp }: Props): JSX.Element => {
   const { camera, points } = state;
 
   const persp = camera.projection === `perspective`;
@@ -89,7 +91,7 @@ export const Toolbar = ({ state, dispatch }: Props): JSX.Element => {
       <Separator />
 
       <div className="space-x-1">
-        <Button title="Text palette editor" onClick={undefined}>
+        <Button title="Text palette editor" onClick={openTextEditor}>
           <span className="fa-layers fa-fw">
             <FontAwesomeIcon icon="palette" fixedWidth transform="left-1 up-3 shrink-1" />
             <FontAwesomeIcon icon="font" fixedWidth transform="right-3 down-5 shrink-4" />
@@ -137,7 +139,7 @@ export const Toolbar = ({ state, dispatch }: Props): JSX.Element => {
       </div>
 
       <div className="flex-grow text-right">
-        <Button title="Help" onClick={undefined}>
+        <Button title="Help" onClick={openHelp}>
           <FontAwesomeIcon icon="question" fixedWidth />
         </Button>
       </div>
